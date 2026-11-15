@@ -45,11 +45,13 @@ export default function App() {
     return localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
+  // Relógio
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // Tema e Ícones
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -65,6 +67,7 @@ export default function App() {
     return () => clearTimeout(timer);
   });
 
+  // PWA Install Prompt
   useEffect(() => {
     const handler = (e: any) => {
       e.preventDefault();
@@ -74,6 +77,7 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  // Click Outside no Menu
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) setShowMenu(false);
@@ -82,6 +86,7 @@ export default function App() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Reset de estados ao logar/deslogar
   useEffect(() => {
     setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false); setShowAccounts(false); setShowProfile(false);
   }, [user]);
@@ -121,6 +126,7 @@ export default function App() {
   const { data: cats } = useQuery({ queryKey: ['categories'], queryFn: api.categories, enabled: !!user });
   const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: () => fetch('/api/accounts').then(r => r.json()), enabled: !!user });
 
+  // Gráfico Anual
   const yearQuery = `?start=${chartYear}-01-01&end=${chartYear}-12-31&month=${chartYear}-01`;
   const { data: yearData, isFetching: isYearLoading } = useQuery({
     queryKey: ['yearly', chartYear],
@@ -240,6 +246,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             
+            {/* LADO ESQUERDO: Menu e Logo */}
             <div className="flex items-center gap-4">
               <div className="relative" ref={menuRef}>
                 <button onClick={() => setShowMenu(!showMenu)} className="flex items-center justify-center p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 rounded-lg transition">
@@ -287,6 +294,7 @@ export default function App() {
               </div>
             </div>
 
+            {/* LADO DIREITO: Período, Atualizar, Avatar e Tema */}
             <div className="flex items-center gap-3">
               <select value={period} onChange={e => setPeriod(e.target.value)} className="bg-slate-100 dark:bg-slate-700 border-none text-slate-700 dark:text-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none cursor-pointer">
                 <option value="this_month">Este Mês</option>
@@ -303,8 +311,12 @@ export default function App() {
                 <i data-lucide="refresh-cw" className="w-5 h-5"></i>
               </button>
 
-              {/* AVATAR NO HEADER */}
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-sm cursor-pointer hover:ring-2 ring-indigo-400 transition-all" onClick={() => setShowProfile(true)} title="Editar Perfil">
+              {/* AVATAR DO USUÁRIO */}
+              <div 
+                onClick={() => setShowProfile(true)} 
+                className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-sm cursor-pointer hover:ring-2 ring-indigo-400 transition-all" 
+                title="Editar Perfil"
+              >
                 {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
               </div>
 
