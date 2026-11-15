@@ -11,7 +11,8 @@ import { BudgetsModal } from './BudgetsModal';
 import { ImportModal } from './ImportModal';
 import { AboutModal } from './AboutModal';
 import { HelpModal } from './HelpModal';
-import { ManageAccounts } from './ManageAccounts'; // NOVO IMPORT
+import { ManageAccounts } from './ManageAccounts';
+import { ProfileModal } from './ProfileModal';
 
 export default function App() {
   const { user, loading, logout } = useAuth();
@@ -26,7 +27,8 @@ export default function App() {
   const [showImport, setShowImport] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [showAccounts, setShowAccounts] = useState(false); // NOVO ESTADO
+  const [showAccounts, setShowAccounts] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   
   const [installPrompt, setInstallPrompt] = useState<any>(null);
@@ -35,7 +37,6 @@ export default function App() {
   const [chartYear, setChartYear] = useState(currentYear);
   const [editId, setEditId] = useState<number | null>(null);
   
-  // FORM ATUALIZADO COM account_id
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0] });
   
   const [time, setTime] = useState(new Date());
@@ -44,13 +45,11 @@ export default function App() {
     return localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
-  // Relógio
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Tema e Ícones
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -66,7 +65,6 @@ export default function App() {
     return () => clearTimeout(timer);
   });
 
-  // PWA Install Prompt
   useEffect(() => {
     const handler = (e: any) => {
       e.preventDefault();
@@ -76,7 +74,6 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  // Click Outside no Menu
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) setShowMenu(false);
@@ -85,9 +82,8 @@ export default function App() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Reset de estados ao logar/deslogar
   useEffect(() => {
-    setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false); setShowAccounts(false);
+    setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false); setShowAccounts(false); setShowProfile(false);
   }, [user]);
 
   const getGreeting = () => {
@@ -123,11 +119,8 @@ export default function App() {
   const { data: dash, isFetching: isDashLoading } = useQuery({ queryKey: ['dashboard', filterQuery], queryFn: () => api.dashboard(filterQuery), enabled: !!user });
   const { data: txns, isFetching: isTxnsLoading } = useQuery({ queryKey: ['transactions', filterQuery], queryFn: () => api.list(filterQuery), enabled: !!user });
   const { data: cats } = useQuery({ queryKey: ['categories'], queryFn: api.categories, enabled: !!user });
-  
-  // NOVA QUERY PARA CONTAS
   const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: () => fetch('/api/accounts').then(r => r.json()), enabled: !!user });
 
-  // QUERY DO GRÁFICO ANUAL
   const yearQuery = `?start=${chartYear}-01-01&end=${chartYear}-12-31&month=${chartYear}-01`;
   const { data: yearData, isFetching: isYearLoading } = useQuery({
     queryKey: ['yearly', chartYear],
@@ -256,10 +249,7 @@ export default function App() {
                 {showMenu && (
                   <div className="absolute left-0 mt-2 w-56 max-h-[80vh] overflow-y-auto bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
                     <div className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase">Ferramentas</div>
-                    
-                    {/* NOVO BOTÃO DE CONTAS */}
                     <button onClick={() => { setShowAccounts(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="wallet" className="w-4 h-4"></i> Contas / Carteiras</button>
-                    
                     <button onClick={() => { setShowCats(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="tags" className="w-4 h-4"></i> Categorias</button>
                     <button onClick={() => { setShowBudget(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="target" className="w-4 h-4"></i> Orçamentos</button>
                     <button onClick={() => { setShowImport(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="file-up" className="w-4 h-4"></i> Importar CSV</button>
@@ -313,6 +303,11 @@ export default function App() {
                 <i data-lucide="refresh-cw" className="w-5 h-5"></i>
               </button>
 
+              {/* AVATAR NO HEADER */}
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-sm cursor-pointer hover:ring-2 ring-indigo-400 transition-all" onClick={() => setShowProfile(true)} title="Editar Perfil">
+                {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+              </div>
+
               <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition">
                 <i data-lucide={darkMode ? "sun" : "moon"} className="w-5 h-5"></i>
               </button>
@@ -330,11 +325,12 @@ export default function App() {
         {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
         {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
         {showAccounts && <ManageAccounts onClose={() => setShowAccounts(false)} />}
+        {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold">
-              {getGreeting()}, <span className="text-indigo-600 dark:text-indigo-400">{capitalize(user.email.split('@')[0].split(/[._-]/)[0])}</span>!
+              {getGreeting()}, <span className="text-indigo-600 dark:text-indigo-400">{user.name ? capitalize(user.name) : capitalize(user.email.split('@')[0])}</span>!
             </h1>
             <p className="text-sm text-slate-500 mt-1 capitalize">
               {time.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
@@ -495,7 +491,6 @@ export default function App() {
                   </div>
                 </div>
                 
-                {/* NOVO CAMPO DE CONTA */}
                 <div>
                   <label className="block text-xs font-medium mb-1">Conta / Carteira</label>
                   <select value={form.account_id} onChange={e => setForm({...form, account_id: e.target.value})} className="w-full border rounded-lg p-2.5 bg-slate-50 dark:bg-slate-900">
@@ -549,7 +544,7 @@ export default function App() {
                           <p className="text-xs text-slate-500 mt-0.5">
                             {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')} 
                             {t.category_name && ` • ${t.category_name}`}
-                            {t.account_name && ` • ${t.account_name}`} {/* NOVO: Mostra o nome da conta */}
+                            {t.account_name && ` • ${t.account_name}`}
                           </p>
                         </div>
                       </div>
