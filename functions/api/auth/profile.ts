@@ -10,6 +10,8 @@ export const onRequestPut: PagesFunction<{ DB: D1Database }> = async ({ request,
   if (!session) return new Response('Sessão inválida', { status: 401 });
 
   const { name } = await request.json<any>();
+  
+  // Salvando o nome no banco de dados
   await env.DB.prepare('UPDATE users SET name = ? WHERE id = ?').bind(name, session.user_id).run();
   
   return Response.json({ ok: true });

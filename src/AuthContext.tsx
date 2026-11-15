@@ -22,14 +22,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Busca os dados do usuário (incluindo o nome) ao abrir o app
     fetch('/api/auth/me')
       .then(res => res.ok ? res.json() : null)
-      .then(data => { setUser(data); setLoading(false); })
+      .then(data => { 
+        setUser(data); 
+        setLoading(false); 
+      })
       .catch(() => setLoading(false));
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+    const res = await fetch('/api/auth/login', { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ email, password }) 
+    });
     if (!res.ok) throw new Error(await res.text());
     const userData = await res.json();
     setUser(userData);
@@ -41,7 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string, name: string) => {
-    const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, name }) });
+    const res = await fetch('/api/auth/register', { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ email, password, name }) 
+    });
     if (!res.ok) throw new Error(await res.text());
     await login(email, password);
   };
