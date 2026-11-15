@@ -9,6 +9,8 @@ import { ManageCategories } from './ManageCategories';
 import { ChangePassword } from './ChangePassword';
 import { BudgetsModal } from './BudgetsModal';
 import { ImportModal } from './ImportModal';
+import { AboutModal } from './AboutModal';
+import { HelpModal } from './HelpModal';
 
 export default function App() {
   const { user, loading, logout } = useAuth();
@@ -21,6 +23,8 @@ export default function App() {
   const [showPass, setShowPass] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   
   // Estado para o PWA
@@ -81,7 +85,7 @@ export default function App() {
 
   // Reset de estados ao logar/deslogar
   useEffect(() => {
-    setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false);
+    setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false);
   }, [user]);
 
   const getGreeting = () => {
@@ -246,7 +250,7 @@ export default function App() {
                 </button>
                 
                 {showMenu && (
-                  <div className="absolute left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute left-0 mt-2 w-56 max-h-[80vh] overflow-y-auto bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
                     <div className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase">Ferramentas</div>
                     <button onClick={() => { setShowCats(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="tags" className="w-4 h-4"></i> Categorias</button>
                     <button onClick={() => { setShowBudget(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="target" className="w-4 h-4"></i> Orçamentos</button>
@@ -257,6 +261,10 @@ export default function App() {
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
                     <button onClick={() => { setShowPass(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="key" className="w-4 h-4"></i> Trocar Senha</button>
                     
+                    {/* BOTÕES DE AJUDA E SOBRE */}
+                    <button onClick={() => { setShowHelp(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="help-circle" className="w-4 h-4"></i> Ajuda</button>
+                    <button onClick={() => { setShowAbout(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="info" className="w-4 h-4"></i> Sobre</button>
+
                     {/* BOTÃO DE INSTALAR APP (Aparece só se disponível) */}
                     {installPrompt && (
                       <>
@@ -314,6 +322,8 @@ export default function App() {
         {showPass && <ChangePassword onClose={() => setShowPass(false)} />}
         {showBudget && <BudgetsModal onClose={() => setShowBudget(false)} cats={cats || []} />}
         {showImport && <ImportModal onClose={() => setShowImport(false)} />}
+        {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+        {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
