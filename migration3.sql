@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS budgets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+  month TEXT NOT NULL,
+  amount REAL NOT NULL,
+  UNIQUE(user_id, category_id, month)
+);

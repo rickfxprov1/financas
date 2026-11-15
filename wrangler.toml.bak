@@ -1,0 +1,8 @@
+name = "financas"
+compatibility_date = "2026-01-01"
+pages_build_output_dir = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "financas-db"
+database_id = "a9f67ddb-774c-4955-b3f3-c3910f0c096e"
