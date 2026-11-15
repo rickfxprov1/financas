@@ -11,6 +11,7 @@ import { BudgetsModal } from './BudgetsModal';
 import { ImportModal } from './ImportModal';
 import { AboutModal } from './AboutModal';
 import { HelpModal } from './HelpModal';
+import { ManageAccounts } from './ManageAccounts'; // NOVO IMPORT
 
 export default function App() {
   const { user, loading, logout } = useAuth();
@@ -25,16 +26,17 @@ export default function App() {
   const [showImport, setShowImport] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showAccounts, setShowAccounts] = useState(false); // NOVO ESTADO
   const [showMenu, setShowMenu] = useState(false);
   
-  // Estado para o PWA
   const [installPrompt, setInstallPrompt] = useState<any>(null);
-
   const [period, setPeriod] = useState('this_month');
   const currentYear = new Date().getFullYear();
   const [chartYear, setChartYear] = useState(currentYear);
   const [editId, setEditId] = useState<number | null>(null);
-  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', date: new Date().toISOString().split('T')[0] });
+  
+  // FORM ATUALIZADO COM account_id
+  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0] });
   
   const [time, setTime] = useState(new Date());
 
@@ -85,7 +87,7 @@ export default function App() {
 
   // Reset de estados ao logar/deslogar
   useEffect(() => {
-    setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false);
+    setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false); setShowAccounts(false);
   }, [user]);
 
   const getGreeting = () => {
@@ -121,6 +123,9 @@ export default function App() {
   const { data: dash, isFetching: isDashLoading } = useQuery({ queryKey: ['dashboard', filterQuery], queryFn: () => api.dashboard(filterQuery), enabled: !!user });
   const { data: txns, isFetching: isTxnsLoading } = useQuery({ queryKey: ['transactions', filterQuery], queryFn: () => api.list(filterQuery), enabled: !!user });
   const { data: cats } = useQuery({ queryKey: ['categories'], queryFn: api.categories, enabled: !!user });
+  
+  // NOVA QUERY PARA CONTAS
+  const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: () => fetch('/api/accounts').then(r => r.json()), enabled: !!user });
 
   // QUERY DO GRÁFICO ANUAL
   const yearQuery = `?start=${chartYear}-01-01&end=${chartYear}-12-31&month=${chartYear}-01`;
@@ -130,7 +135,6 @@ export default function App() {
     enabled: !!user,
   });
 
-  // Processar dados do gráfico anual
   const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   const chartData: any[] = monthNames.map((name, i) => {
     const monthKey = `${chartYear}-${String(i + 1).padStart(2, '0')}`;
@@ -143,7 +147,6 @@ export default function App() {
     };
   });
 
-  // Saldo acumulado para a linha de tendência
   let running = 0;
   chartData.forEach((d) => {
     running += d.balance;
@@ -157,7 +160,7 @@ export default function App() {
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['yearly'] });
       setEditId(null);
-      setForm({ description: '', amount: '', type: 'expense', category_id: '', date: new Date().toISOString().split('T')[0] });
+      setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0] });
       toast.success(editId ? 'Atualizado!' : 'Lançado!');
     },
   });
@@ -178,12 +181,12 @@ export default function App() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description || !form.amount || !form.date) return;
-    saveTx.mutate({ ...form, amount: Number(form.amount), account_id: 1, category_id: Number(form.category_id) || null });
+    saveTx.mutate({ ...form, amount: Number(form.amount), account_id: Number(form.account_id) || 1, category_id: Number(form.category_id) || null });
   };
 
   const handleEdit = (t: any) => {
     setEditId(t.id);
-    setForm({ description: t.description, amount: t.amount.toString(), type: t.type, category_id: t.category_id || '', date: t.date });
+    setForm({ description: t.description, amount: t.amount.toString(), type: t.type, category_id: t.category_id || '', account_id: t.account_id || '', date: t.date });
     formRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -229,6 +232,7 @@ export default function App() {
           qc.invalidateQueries({ queryKey: ['transactions'] });
           qc.invalidateQueries({ queryKey: ['categories'] });
           qc.invalidateQueries({ queryKey: ['yearly'] });
+          qc.invalidateQueries({ queryKey: ['accounts'] });
         } else { toast.error('Erro ao restaurar.'); }
       } catch { toast.error('Arquivo inválido.'); }
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -252,6 +256,10 @@ export default function App() {
                 {showMenu && (
                   <div className="absolute left-0 mt-2 w-56 max-h-[80vh] overflow-y-auto bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
                     <div className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase">Ferramentas</div>
+                    
+                    {/* NOVO BOTÃO DE CONTAS */}
+                    <button onClick={() => { setShowAccounts(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="wallet" className="w-4 h-4"></i> Contas / Carteiras</button>
+                    
                     <button onClick={() => { setShowCats(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="tags" className="w-4 h-4"></i> Categorias</button>
                     <button onClick={() => { setShowBudget(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="target" className="w-4 h-4"></i> Orçamentos</button>
                     <button onClick={() => { setShowImport(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="file-up" className="w-4 h-4"></i> Importar CSV</button>
@@ -260,12 +268,9 @@ export default function App() {
                     <button onClick={() => { fileInputRef.current?.click(); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="upload-cloud" className="w-4 h-4"></i> Restaurar</button>
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
                     <button onClick={() => { setShowPass(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="key" className="w-4 h-4"></i> Trocar Senha</button>
-                    
-                    {/* BOTÕES DE AJUDA E SOBRE */}
                     <button onClick={() => { setShowHelp(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="help-circle" className="w-4 h-4"></i> Ajuda</button>
                     <button onClick={() => { setShowAbout(true); setShowMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"><i data-lucide="info" className="w-4 h-4"></i> Sobre</button>
 
-                    {/* BOTÃO DE INSTALAR APP (Aparece só se disponível) */}
                     {installPrompt && (
                       <>
                         <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
@@ -324,6 +329,7 @@ export default function App() {
         {showImport && <ImportModal onClose={() => setShowImport(false)} />}
         {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
         {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+        {showAccounts && <ManageAccounts onClose={() => setShowAccounts(false)} />}
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -391,14 +397,12 @@ export default function App() {
           )}
         </div>
 
-        {/* ============ GRÁFICO ANUAL EM 3D ============ */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
             <div>
               <h3 className="font-semibold text-lg">Visão Anual</h3>
               <p className="text-xs text-slate-500">Receitas, Despesas e Tendência de Saldo Acumulado</p>
             </div>
-            
             <select 
               value={chartYear} 
               onChange={e => setChartYear(Number(e.target.value))}
@@ -431,60 +435,13 @@ export default function App() {
                   </filter>
                 </defs>
                 
-                <XAxis 
-                  dataKey="month" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12, fontWeight: 500 }} 
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} 
-                />
-                <Tooltip 
-                  cursor={{ fill: darkMode ? '#334155' : '#f1f5f9' }}
-                  contentStyle={{ 
-                    backgroundColor: darkMode ? '#1e293b' : '#fff', 
-                    border: 'none', 
-                    borderRadius: '12px', 
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
-                    color: darkMode ? '#fff' : '#000'
-                  }}
-                  formatter={(value: any) => typeof value === 'number' ? `R$ ${value.toFixed(2)}` : value}
-                />
-                <Legend 
-                  wrapperStyle={{ paddingTop: '20px' }}
-                  iconType="circle"
-                />
-                
-                <Bar 
-                  dataKey="income" 
-                  fill="url(#income3D)" 
-                  name="Receita" 
-                  radius={[6, 6, 0, 0]} 
-                  filter="url(#barShadow)"
-                  barSize={20}
-                />
-                <Bar 
-                  dataKey="expense" 
-                  fill="url(#expense3D)" 
-                  name="Despesa" 
-                  radius={[6, 6, 0, 0]} 
-                  filter="url(#barShadow)"
-                  barSize={20}
-                />
-                
-                <Line 
-                  type="monotone" 
-                  dataKey="cumulative" 
-                  stroke="#6366f1" 
-                  strokeWidth={3} 
-                  name="Saldo Acumulado" 
-                  dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: darkMode ? '#1e293b' : '#fff' }}
-                  activeDot={{ r: 7, stroke: '#6366f1', strokeWidth: 3, fill: darkMode ? '#1e293b' : '#fff' }}
-                />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12, fontWeight: 500 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} />
+                <Tooltip cursor={{ fill: darkMode ? '#334155' : '#f1f5f9' }} contentStyle={{ backgroundColor: darkMode ? '#1e293b' : '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', color: darkMode ? '#fff' : '#000' }} formatter={(value: any) => typeof value === 'number' ? `R$ ${value.toFixed(2)}` : value} />
+                <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
+                <Bar dataKey="income" fill="url(#income3D)" name="Receita" radius={[6, 6, 0, 0]} filter="url(#barShadow)" barSize={20} />
+                <Bar dataKey="expense" fill="url(#expense3D)" name="Despesa" radius={[6, 6, 0, 0]} filter="url(#barShadow)" barSize={20} />
+                <Line type="monotone" dataKey="cumulative" stroke="#6366f1" strokeWidth={3} name="Saldo Acumulado" dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: darkMode ? '#1e293b' : '#fff' }} activeDot={{ r: 7, stroke: '#6366f1', strokeWidth: 3, fill: darkMode ? '#1e293b' : '#fff' }} />
               </ComposedChart>
             </ResponsiveContainer>
           )}
@@ -537,6 +494,16 @@ export default function App() {
                     </select>
                   </div>
                 </div>
+                
+                {/* NOVO CAMPO DE CONTA */}
+                <div>
+                  <label className="block text-xs font-medium mb-1">Conta / Carteira</label>
+                  <select value={form.account_id} onChange={e => setForm({...form, account_id: e.target.value})} className="w-full border rounded-lg p-2.5 bg-slate-50 dark:bg-slate-900">
+                    <option value="">Selecione a conta...</option>
+                    {accounts?.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-xs font-medium mb-1">Categoria</label>
                   <select value={form.category_id} onChange={e => setForm({...form, category_id: e.target.value})} className="w-full border rounded-lg p-2.5 bg-slate-50 dark:bg-slate-900">
@@ -553,7 +520,7 @@ export default function App() {
                   {editId ? 'Salvar Alterações' : 'Lançar'}
                 </button>
                 {editId && (
-                  <button type="button" onClick={() => { setEditId(null); setForm({ description: '', amount: '', type: 'expense', category_id: '', date: new Date().toISOString().split('T')[0] }); }} className="w-full text-sm text-slate-500 mt-2">Cancelar Edição</button>
+                  <button type="button" onClick={() => { setEditId(null); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0] }); }} className="w-full text-sm text-slate-500 mt-2">Cancelar Edição</button>
                 )}
               </form>
             </div>
@@ -579,7 +546,11 @@ export default function App() {
                         </div>
                         <div>
                           <p className="font-medium text-sm sm:text-base">{t.description}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')} {t.category_name && `• ${t.category_name}`}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')} 
+                            {t.category_name && ` • ${t.category_name}`}
+                            {t.account_name && ` • ${t.account_name}`} {/* NOVO: Mostra o nome da conta */}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
