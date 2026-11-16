@@ -37,6 +37,7 @@ export default function App() {
   const [chartYear, setChartYear] = useState(currentYear);
   const [editId, setEditId] = useState<number | null>(null);
   
+  // FIX ONDA 4B: Usa toLocaleDateString('sv-SE') para data local
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE') });
   
   const [time, setTime] = useState(new Date());
@@ -45,13 +46,11 @@ export default function App() {
     return localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
-  // Relógio
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Tema e Ícones
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -67,7 +66,6 @@ export default function App() {
     return () => clearTimeout(timer);
   });
 
-  // PWA Install Prompt
   useEffect(() => {
     const handler = (e: any) => {
       e.preventDefault();
@@ -77,7 +75,6 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  // Click Outside no Menu
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) setShowMenu(false);
@@ -86,7 +83,6 @@ export default function App() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Reset de estados ao logar/deslogar
   useEffect(() => {
     setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false); setShowAccounts(false); setShowProfile(false);
   }, [user]);
@@ -100,22 +96,24 @@ export default function App() {
 
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+  // FIX ONDA 4B: Substituído toISOString() por toLocaleDateString('sv-SE')
   const getFilterDates = () => {
     const now = new Date();
     const y = now.getFullYear();
     const m = now.getMonth();
+    
     if (period === 'this_month') {
-      const start = new Date(y, m, 1).toISOString().split('T')[0];
-      const end = new Date(y, m + 1, 0).toISOString().split('T')[0];
+      const start = new Date(y, m, 1).toLocaleDateString('sv-SE');
+      const end = new Date(y, m + 1, 0).toLocaleDateString('sv-SE');
       return { start, end, month: start.slice(0, 7) };
     } else if (period === 'last_month') {
-      const start = new Date(y, m - 1, 1).toISOString().split('T')[0];
-      const end = new Date(y, m, 0).toISOString().split('T')[0];
+      const start = new Date(y, m - 1, 1).toLocaleDateString('sv-SE');
+      const end = new Date(y, m, 0).toLocaleDateString('sv-SE');
       return { start, end, month: start.slice(0, 7) };
     } else if (period === 'this_year') {
       return { start: `${y}-01-01`, end: `${y}-12-31`, month: `${y}-01` };
     }
-    return { start: '1900-01-01', end: '2100-01-01', month: now.toISOString().slice(0, 7) };
+    return { start: '1900-01-01', end: '2100-01-01', month: now.toLocaleDateString('sv-SE').slice(0, 7) };
   };
 
   const dates = getFilterDates();
@@ -124,11 +122,8 @@ export default function App() {
   const { data: dash, isFetching: isDashLoading } = useQuery({ queryKey: ['dashboard', filterQuery], queryFn: () => api.dashboard(filterQuery), enabled: !!user });
   const { data: txns, isFetching: isTxnsLoading } = useQuery({ queryKey: ['transactions', filterQuery], queryFn: () => api.list(filterQuery), enabled: !!user });
   const { data: cats } = useQuery({ queryKey: ['categories'], queryFn: api.categories, enabled: !!user });
-  
-  // QUERY DE CONTAS USANDO api.accounts (trata 401)
   const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: api.accounts, enabled: !!user });
 
-  // Gráfico Anual
   const yearQuery = `?start=${chartYear}-01-01&end=${chartYear}-12-31&month=${chartYear}-01`;
   const { data: yearData, isFetching: isYearLoading } = useQuery({
     queryKey: ['yearly', chartYear],
@@ -255,7 +250,6 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             
-            {/* LADO ESQUERDO: Menu e Logo */}
             <div className="flex items-center gap-4">
               <div className="relative" ref={menuRef}>
                 <button onClick={() => setShowMenu(!showMenu)} className="flex items-center justify-center p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 rounded-lg transition">
@@ -303,7 +297,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* LADO DIREITO: Período, Atualizar, Avatar e Tema */}
             <div className="flex items-center gap-3">
               <select value={period} onChange={e => setPeriod(e.target.value)} className="bg-slate-100 dark:bg-slate-700 border-none text-slate-700 dark:text-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none cursor-pointer">
                 <option value="this_month">Este Mês</option>
@@ -320,12 +313,7 @@ export default function App() {
                 <i data-lucide="refresh-cw" className="w-5 h-5"></i>
               </button>
 
-              {/* AVATAR */}
-              <div 
-                onClick={() => setShowProfile(true)} 
-                className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-sm cursor-pointer hover:ring-2 ring-indigo-400 transition-all" 
-                title="Editar Perfil"
-              >
+              <div onClick={() => setShowProfile(true)} className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-sm cursor-pointer hover:ring-2 ring-indigo-400 transition-all" title="Editar Perfil">
                 {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
               </div>
 
@@ -367,7 +355,6 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* CARD DE SALDO ATUALIZADO */}
           <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-6 text-white shadow-lg shadow-indigo-500/30 flex flex-col justify-between">
             <div>
               <p className="text-indigo-100 font-medium text-sm">Saldo Atual</p>

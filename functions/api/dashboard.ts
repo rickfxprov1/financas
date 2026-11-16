@@ -3,7 +3,11 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
   const url = new URL(request.url);
   const start = url.searchParams.get('start') || '1900-01-01';
   const end = url.searchParams.get('end') || '2100-01-01';
-  const month = url.searchParams.get('month') || new Date().toISOString().slice(0, 7);
+  
+  // FIX ONDA 4B: Usa fuso do Brasil (UTC-3) para o "mês atual" padrão
+  const now = new Date();
+  const brazilDate = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  const month = url.searchParams.get('month') || brazilDate.toISOString().slice(0, 7);
 
   const [saldo, periodResult, mensal, porCategoria, recentes, budgets] = await Promise.all([
     // 1. Saldo REAL (Saldo inicial de todas as contas + TODAS as transações até hoje)
@@ -46,7 +50,7 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
       ORDER BY t.date DESC, t.id DESC LIMIT 10
     `).bind(userId, start, end).all(),
     
-    // 6. Orçamentos (CORRIGIDO: Adicionado AND t.type = 'expense')
+    // 6. Orçamentos (só despesas)
     env.DB.prepare(`
       SELECT b.category_id, b.amount as budget_amount, c.name, c.color,
              COALESCE(SUM(t.amount), 0) as spent
