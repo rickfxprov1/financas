@@ -13,6 +13,7 @@ import { AboutModal } from './AboutModal';
 import { HelpModal } from './HelpModal';
 import { ManageAccounts } from './ManageAccounts';
 import { ProfileModal } from './ProfileModal';
+import { ResultModal, type ResultInfo } from './ResultModal';
 
 export default function App() {
   const { user, loading, logout } = useAuth();
@@ -30,7 +31,9 @@ export default function App() {
   const [showAccounts, setShowAccounts] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  
+  const [busy, setBusy] = useState<null | 'backup' | 'restore'>(null);
+  const [result, setResult] = useState<ResultInfo | null>(null);
+
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [period, setPeriod] = useState('this_month');
   const currentYear = new Date().getFullYear();
@@ -200,42 +203,129 @@ export default function App() {
   };
 
   const handleBackup = async () => {
+    if (busy) return;
+    setBusy('backup');
     try {
       const res = await fetch('/api/backup');
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error((await res.text()).trim() || `Erro ${res.status}`);
       const data = await res.json();
+
+      // Data no fuso do usuário (toISOString usa UTC e pode virar o dia à noite)
+      const today = new Date().toLocaleDateString('sv-SE');
+      const fileName = `backup-financas-${today}.json`;
+
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `backup-financas-${new Date().toISOString().split('T')[0]}.json`;
+      link.href = url;
+      link.download = fileName;
       link.click();
-      toast.success('Backup baixado!');
-    } catch { toast.error('Erro no backup.'); }
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+      setResult({
+        kind: 'success',
+        title: 'Backup concluído',
+        message: `O arquivo ${fileName} foi gerado. Procure por ele na pasta Downloads do seu aparelho e guarde em um lugar seguro.`,
+        items: [
+          { label: 'Transações', value: data.transactions?.length ?? 0 },
+          { label: 'Contas', value: data.accounts?.length ?? 0 },
+          { label: 'Categorias', value: data.categories?.length ?? 0 },
+          { label: 'Orçamentos', value: data.budgets?.length ?? 0 },
+        ],
+      });
+    } catch (err: any) {
+      setResult({
+        kind: 'error',
+        title: 'Não foi possível gerar o backup',
+        message: err?.message || 'Tente novamente em instantes.',
+      });
+    } finally {
+      setBusy(null);
+    }
   };
 
   const handleRestore = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!confirm('Atenção: Isso vai substituir TODOS os seus dados. Continuar?')) {
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
+
+    const resetInput = () => { if (fileInputRef.current) fileInputRef.current.value = ''; };
+
+    if (busy) { resetInput(); return; }
+
     const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const json = JSON.parse(event.target?.result as string);
-        const res = await fetch('/api/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json) });
-        if (res.ok) {
-          toast.success('Backup restaurado!');
-          qc.invalidateQueries({ queryKey: ['dashboard'] });
-          qc.invalidateQueries({ queryKey: ['transactions'] });
-          qc.invalidateQueries({ queryKey: ['categories'] });
-          qc.invalidateQueries({ queryKey: ['yearly'] });
-          qc.invalidateQueries({ queryKey: ['accounts'] });
-        } else { toast.error('Erro ao restaurar.'); }
-      } catch { toast.error('Arquivo inválido.'); }
-      if (fileInputRef.current) fileInputRef.current.value = '';
+
+    reader.onerror = () => {
+      resetInput();
+      setResult({ kind: 'error', title: 'Não foi possível ler o arquivo', message: 'Tente selecionar o arquivo novamente.' });
     };
+
+    reader.onload = async (event) => {
+      let json: any;
+      try {
+        json = JSON.parse(event.target?.result as string);
+      } catch {
+        resetInput();
+        setResult({ kind: 'error', title: 'Arquivo inválido', message: 'Este arquivo não é um backup válido. Escolha o arquivo .json gerado por "Fazer Backup".' });
+        return;
+      }
+
+      if (!Array.isArray(json?.transactions) || !Array.isArray(json?.categories)) {
+        resetInput();
+        setResult({ kind: 'error', title: 'Arquivo inválido', message: 'Este arquivo não parece ser um backup do Finanças Pro.' });
+        return;
+      }
+
+      const nTx = json.transactions.length;
+      const nAcc = Array.isArray(json.accounts) ? json.accounts.length : 0;
+      const nCat = json.categories.length;
+
+      if (!confirm(`Este backup tem ${nTx} transações, ${nAcc} contas e ${nCat} categorias.\n\nIsso vai substituir TODOS os seus dados atuais. Continuar?`)) {
+        resetInput();
+        return;
+      }
+
+      setBusy('restore');
+      try {
+        const res = await fetch('/api/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json) });
+        if (!res.ok) {
+          const error: any = new Error((await res.text()).trim() || `Erro ${res.status}`);
+          error.fromServer = true;
+          throw error;
+        }
+        const r: any = await res.json().catch(() => ({}));
+
+        qc.invalidateQueries();
+
+        const orphans = r?.transacoes_sem_conta_original ?? 0;
+        setResult({
+          kind: 'success',
+          title: 'Restauração concluída',
+          message: 'Seus dados foram substituídos pelo conteúdo do backup.',
+          items: [
+            { label: 'Transações', value: r?.transacoes ?? nTx },
+            { label: 'Contas', value: r?.contas ?? nAcc },
+            { label: 'Categorias', value: r?.categorias ?? nCat },
+            { label: 'Orçamentos', value: r?.orcamentos ?? (Array.isArray(json.budgets) ? json.budgets.length : 0) },
+          ],
+          warning: orphans > 0
+            ? `${orphans} transação(ões) estavam ligadas a uma conta que não existe mais e foram colocadas na conta "Conta restaurada".`
+            : undefined,
+        });
+      } catch (err: any) {
+        setResult({
+          kind: 'error',
+          title: 'Não foi possível restaurar',
+          message: err?.message || 'Ocorreu um erro inesperado.',
+          note: err?.fromServer
+            ? 'Seus dados atuais foram mantidos.'
+            : 'Não foi possível confirmar o resultado. Verifique sua conexão e confira seus dados antes de tentar de novo.',
+        });
+      } finally {
+        setBusy(null);
+        resetInput();
+      }
+    };
+
     reader.readAsText(file);
   };
 
@@ -338,6 +428,18 @@ export default function App() {
         {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
         {showAccounts && <ManageAccounts onClose={() => setShowAccounts(false)} />}
         {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+
+        {busy && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 w-full max-w-xs shadow-2xl border border-slate-200 dark:border-slate-700 text-center">
+              <div className="mx-auto mb-4 w-10 h-10 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
+              <p className="font-semibold text-slate-900 dark:text-white">{busy === 'restore' ? 'Restaurando backup...' : 'Gerando backup...'}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Não feche esta página.</p>
+            </div>
+          </div>
+        )}
+
+        {result && <ResultModal info={result} onClose={() => setResult(null)} />}
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
