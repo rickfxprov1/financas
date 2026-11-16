@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { X, Wallet, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function ManageAccounts({ onClose }: { onClose: () => void }) {
@@ -31,8 +32,8 @@ export function ManageAccounts({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold flex items-center gap-2"><i data-lucide="wallet" className="w-5 h-5 text-indigo-500"></i> Minhas Contas</h2>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition"><i data-lucide="x" className="w-5 h-5"></i></button>
+          <h2 className="text-xl font-bold flex items-center gap-2"><Wallet className="w-5 h-5 text-indigo-500" /> Minhas Contas</h2>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition"><X className="w-5 h-5" /></button>
         </div>
         
         <form onSubmit={e => { e.preventDefault(); addAcc.mutate({ name, type, initial_balance: Number(balance) || 0 }); }} className="grid grid-cols-2 gap-3 mb-6">
@@ -56,7 +57,7 @@ export function ManageAccounts({ onClose }: { onClose: () => void }) {
               </div>
               <div className="flex items-center gap-3">
                 <span className="font-medium text-slate-600 dark:text-slate-400">R$ {a.initial_balance.toFixed(2)}</span>
-                <button onClick={() => delAcc.mutate(a.id)} className="text-slate-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
+                <button onClick={() => { if(confirm('Excluir esta conta apagará TODAS as transações vinculadas. Continuar?')) delAcc.mutate(a.id) }} className="text-slate-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition"><Trash2 className="w-4 h-4" /></button>
               </div>
             </li>
           ))}

@@ -1,6 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, Legend } from 'recharts';
+import {
+  Menu, Wallet, Tags, Target, FileUp, DownloadCloud, UploadCloud, Key,
+  HelpCircle, Info, Download, LogOut, BarChart3, RefreshCw, TrendingUp,
+  Clock, PieChart as PieChartIcon, ArrowDownLeft, ArrowUpRight, Edit2,
+  Trash2, Edit, Plus, Check, ArrowRight, PlusCircle
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from './api';
 import { useAuth } from './AuthContext';
@@ -58,12 +64,7 @@ export default function App() {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }
-    const timer = setTimeout(() => {
-      // @ts-ignore
-      if(window.lucide) window.lucide.createIcons();
-    }, 10);
-    return () => clearTimeout(timer);
-  });
+  }, [darkMode]);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -257,13 +258,11 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors relative overflow-x-hidden">
       
-      {/* Bg decorativo */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-3xl"></div>
       </div>
 
-      {/* NAVBAR GLASSMORPHISM */}
       <nav className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800/60 sticky top-0 z-40">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
@@ -271,42 +270,42 @@ export default function App() {
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="relative" ref={menuRef}>
                 <button onClick={() => setShowMenu(!showMenu)} className="flex items-center justify-center p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all active:scale-95">
-                  <i data-lucide="menu" className="w-5 h-5"></i>
+                  <Menu className="w-5 h-5" />
                 </button>
                 
                 {showMenu && (
                   <div className="absolute left-0 mt-2 w-60 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl shadow-slate-900/20 border border-slate-200 dark:border-slate-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
                     <div className="px-4 py-2 text-[10px] font-bold tracking-widest text-slate-400 uppercase">Ferramentas</div>
-                    <button onClick={() => { setShowAccounts(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><i data-lucide="wallet" className="w-4 h-4 text-slate-400"></i> Contas / Carteiras</button>
-                    <button onClick={() => { setShowCats(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><i data-lucide="tags" className="w-4 h-4 text-slate-400"></i> Categorias</button>
-                    <button onClick={() => { setShowBudget(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><i data-lucide="target" className="w-4 h-4 text-slate-400"></i> Orçamentos</button>
-                    <button onClick={() => { setShowImport(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><i data-lucide="file-up" className="w-4 h-4 text-slate-400"></i> Importar CSV</button>
+                    <button onClick={() => { setShowAccounts(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><Wallet className="w-4 h-4 text-slate-400" /> Contas / Carteiras</button>
+                    <button onClick={() => { setShowCats(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><Tags className="w-4 h-4 text-slate-400" /> Categorias</button>
+                    <button onClick={() => { setShowBudget(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><Target className="w-4 h-4 text-slate-400" /> Orçamentos</button>
+                    <button onClick={() => { setShowImport(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><FileUp className="w-4 h-4 text-slate-400" /> Importar CSV</button>
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
-                    <button onClick={() => { handleBackup(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><i data-lucide="download-cloud" className="w-4 h-4 text-slate-400"></i> Fazer Backup</button>
-                    <button onClick={() => { fileInputRef.current?.click(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><i data-lucide="upload-cloud" className="w-4 h-4 text-slate-400"></i> Restaurar</button>
+                    <button onClick={() => { handleBackup(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><DownloadCloud className="w-4 h-4 text-slate-400" /> Fazer Backup</button>
+                    <button onClick={() => { fileInputRef.current?.click(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><UploadCloud className="w-4 h-4 text-slate-400" /> Restaurar</button>
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
-                    <button onClick={() => { setShowPass(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><i data-lucide="key" className="w-4 h-4 text-slate-400"></i> Trocar Senha</button>
-                    <button onClick={() => { setShowHelp(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><i data-lucide="help-circle" className="w-4 h-4 text-slate-400"></i> Ajuda</button>
-                    <button onClick={() => { setShowAbout(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><i data-lucide="info" className="w-4 h-4 text-slate-400"></i> Sobre</button>
+                    <button onClick={() => { setShowPass(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><Key className="w-4 h-4 text-slate-400" /> Trocar Senha</button>
+                    <button onClick={() => { setShowHelp(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><HelpCircle className="w-4 h-4 text-slate-400" /> Ajuda</button>
+                    <button onClick={() => { setShowAbout(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><Info className="w-4 h-4 text-slate-400" /> Sobre</button>
 
                     {installPrompt && (
                       <>
                         <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
                         <button onClick={() => { handleInstall(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 flex items-center gap-3 transition-colors">
-                          <i data-lucide="download" className="w-4 h-4"></i> Instalar App
+                          <Download className="w-4 h-4" /> Instalar App
                         </button>
                       </>
                     )}
                     
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
-                    <button onClick={logout} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors"><i data-lucide="log-out" className="w-4 h-4"></i> Sair</button>
+                    <button onClick={logout} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors"><LogOut className="w-4 h-4" /> Sair</button>
                   </div>
                 )}
               </div>
               
               <div className="flex items-center gap-3">
                 <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 p-2.5 rounded-xl shadow-lg shadow-emerald-500/30 text-white flex items-center justify-center">
-                  <i data-lucide="bar-chart-3" className="w-5 h-5"></i>
+                  <BarChart3 className="w-5 h-5" />
                 </div>
                 <div className="flex flex-col">
                   <span className="font-extrabold text-lg tracking-tight leading-none text-slate-900 dark:text-white">Finanças</span>
@@ -316,7 +315,6 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* SELETOR DE PERÍODO */}
               <select value={period} onChange={e => setPeriod(e.target.value)} className="bg-slate-100/80 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 rounded-xl px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors max-w-[100px] sm:max-w-none">
                 <option value="this_month">Este Mês</option>
                 <option value="last_month">Mês Passado</option>
@@ -324,13 +322,8 @@ export default function App() {
                 <option value="all">Todo</option>
               </select>
               
-              {/* BOTÃO DE REFRESH SEGURO */}
-              <button 
-                onClick={handleRefresh} 
-                className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95" 
-                title="Atualizar dados"
-              >
-                <i data-lucide="refresh-cw" className="w-4 h-4 sm:w-5 sm:h-5"></i>
+              <button onClick={handleRefresh} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95" title="Atualizar dados">
+                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
               <div onClick={() => setShowProfile(true)} className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-emerald-500/30 cursor-pointer hover:ring-2 ring-emerald-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 transition-all" title="Editar Perfil">
@@ -338,7 +331,7 @@ export default function App() {
               </div>
 
               <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95">
-                <i data-lucide={darkMode ? "sun" : "moon"} className="w-4 h-4 sm:w-5 sm:h-5"></i>
+                {darkMode ? <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg> : <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>}
               </button>
               <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={handleRestore} />
             </div>
@@ -356,7 +349,6 @@ export default function App() {
         {showAccounts && <ManageAccounts onClose={() => setShowAccounts(false)} />}
         {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
-        {/* Header saudação */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="w-full sm:w-auto">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
@@ -368,17 +360,15 @@ export default function App() {
           </div>
           
           <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm px-3 sm:px-4 py-2 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start">
-            <i data-lucide="clock" className="w-4 h-4 text-emerald-500"></i>
+            <Clock className="w-4 h-4 text-emerald-500" />
             <span className="font-mono font-semibold text-sm md:text-lg text-slate-700 dark:text-slate-200 tracking-wider">
               {time.toLocaleTimeString('pt-BR')}
             </span>
           </div>
         </div>
 
-        {/* Grid de cards topo */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           
-          {/* Card Saldo Premium */}
           <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 rounded-3xl p-5 md:p-6 text-white shadow-2xl shadow-emerald-500/30 overflow-hidden flex flex-col justify-between group h-full">
             <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
@@ -387,7 +377,7 @@ export default function App() {
               <div className="flex items-center justify-between">
                 <p className="text-emerald-50 font-semibold text-sm">Saldo Atual</p>
                 <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
-                  <i data-lucide="trending-up" className="w-4 h-4"></i>
+                  <TrendingUp className="w-4 h-4" />
                 </div>
               </div>
               {isDashLoading ? (
@@ -407,7 +397,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Card Pizza */}
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60 md:col-span-2 flex flex-col">
             <div className="flex justify-between items-start mb-2 shrink-0">
               <h3 className="font-bold text-slate-800 dark:text-slate-200">Despesas por Categoria</h3>
@@ -428,7 +417,7 @@ export default function App() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex flex-col items-center justify-center text-slate-400 text-sm gap-2">
-                  <i data-lucide="pie-chart" className="w-8 h-8 opacity-40"></i>
+                  <PieChartIcon className="w-8 h-8 opacity-40" />
                   <span>Nenhuma despesa registrada</span>
                 </div>
               )}
@@ -436,7 +425,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Gráfico Fluxo */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60">
           <div className="flex justify-between items-start mb-4">
             <h3 className="font-bold text-slate-800 dark:text-slate-200">Fluxo de Caixa</h3>
@@ -457,7 +445,6 @@ export default function App() {
           )}
         </div>
 
-        {/* Gráfico Anual */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
             <div>
@@ -508,7 +495,6 @@ export default function App() {
           )}
         </div>
 
-        {/* Orçamentos */}
         {dash?.budgets && dash.budgets.length > 0 && (
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60">
             <h3 className="font-bold mb-4 text-slate-800 dark:text-slate-200">Seus Orçamentos (Mês Atual)</h3>
@@ -531,15 +517,13 @@ export default function App() {
           </div>
         )}
 
-        {/* Grid Form + Lista */}
         <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           
-          {/* Formulário moderno */}
           <div className="lg:col-span-1" ref={formRef}>
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60 sticky top-24">
               <h3 className="font-bold mb-5 flex items-center gap-2 text-slate-800 dark:text-slate-200">
                 <span className="bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400">
-                  <i data-lucide={editId ? "edit" : "plus"} className="w-4 h-4"></i>
+                  {editId ? <Edit className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                 </span>
                 {editId ? 'Editar Transação' : 'Nova Transação'}
               </h3>
@@ -581,7 +565,7 @@ export default function App() {
                   <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/50 text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all" required />
                 </div>
                 <button type="submit" className="w-full bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/30 flex justify-center items-center gap-2 transition-all active:scale-95">
-                  <i data-lucide={editId ? "check" : "arrow-right"} className="w-4 h-4"></i>
+                  {editId ? <Check className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
                   {editId ? 'Salvar' : 'Lançar'}
                 </button>
                 {editId && (
@@ -591,7 +575,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Lista de transações */}
           <div className="lg:col-span-2 xl:col-span-3">
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-800/60 overflow-hidden h-full">
               <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800">
@@ -611,7 +594,7 @@ export default function App() {
                     <li key={t.id} className="p-4 sm:px-6 hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors flex items-center justify-between group">
                       <div className="flex items-center gap-3 sm:gap-4">
                         <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm" style={{ backgroundColor: t.category_color ? `${t.category_color}20` : (darkMode ? '#1e293b' : '#f1f5f9'), color: t.category_color || (darkMode ? '#cbd5e1' : '#64748b') }}>
-                          <i data-lucide={t.type === 'income' ? 'arrow-down-left' : 'arrow-up-right'} className="w-4 h-4 sm:w-5 sm:h-5"></i>
+                          {t.type === 'income' ? <ArrowDownLeft className="w-4 h-4 sm:w-5 sm:h-5" /> : <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />}
                         </div>
                         <div>
                           <p className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100">{t.description}</p>
@@ -627,8 +610,8 @@ export default function App() {
                           {t.type === 'income' ? '+' : '-'} R$ {t.amount.toFixed(2)}
                         </span>
                         <div className="hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 rounded-xl p-1 transition-all">
-                          <button onClick={() => handleEdit(t)} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition"><i data-lucide="edit-2" className="w-4 h-4"></i></button>
-                          <button onClick={() => { if(confirm('Excluir transação?')) deleteTx.mutate(t.id) }} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
+                          <button onClick={() => handleEdit(t)} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
+                          <button onClick={() => { if(confirm('Excluir transação?')) deleteTx.mutate(t.id) }} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </div>
                     </li>
@@ -637,12 +620,12 @@ export default function App() {
                   {(!txns || txns.length === 0) && (
                     <li className="flex flex-col items-center justify-center p-12 sm:p-16 text-center">
                       <div className="bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/30 dark:to-slate-800/50 p-5 rounded-2xl mb-4">
-                        <i data-lucide="wallet" className="w-10 h-10 text-emerald-500 dark:text-emerald-400"></i>
+                        <Wallet className="w-10 h-10 text-emerald-500 dark:text-emerald-400" />
                       </div>
                       <h4 className="text-lg font-bold text-slate-700 dark:text-slate-300">Sua carteira está vazia</h4>
                       <p className="text-sm text-slate-500 max-w-xs mt-1.5">Registre sua primeira despesa ou receita para começar a acompanhar suas finanças.</p>
                       <button onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })} className="mt-6 text-sm font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-2 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition">
-                        <i data-lucide="plus-circle" className="w-4 h-4"></i> Fazer um lançamento
+                        <PlusCircle className="w-4 h-4" /> Fazer um lançamento
                       </button>
                     </li>
                   )}

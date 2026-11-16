@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BarChart3, Mail, Lock, User } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 export function LoginPage() {
@@ -18,7 +19,6 @@ export function LoginPage() {
       return setError('Por favor, insira seu nome.');
     }
 
-    // Validação rigorosa no Frontend para evitar emails falsos
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email)) {
       return setError('Insira um e-mail válido (ex: nome@dominio.com).');
@@ -41,10 +41,9 @@ export function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 p-4">
       <div className="bg-white/5 backdrop-blur-lg border border-white/10 p-8 rounded-3xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
-        
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-4 rounded-2xl shadow-lg shadow-indigo-500/30 text-white mb-4">
-            <i data-lucide="bar-chart-3" className="w-8 h-8"></i>
+          <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 p-4 rounded-2xl shadow-lg shadow-emerald-500/30 text-white mb-4">
+            <BarChart3 className="w-8 h-8" />
           </div>
           <h2 className="text-3xl font-extrabold text-white tracking-tight">Finanças</h2>
           <p className="text-emerald-400 text-xs font-bold tracking-widest uppercase mt-1">Pro</p>
@@ -55,7 +54,7 @@ export function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {isRegister && (
             <div className="relative">
-              <i data-lucide="user" className="absolute left-3 top-3.5 w-5 h-5 text-slate-400"></i>
+              <User className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Seu nome (ex: Rick)"
@@ -66,9 +65,8 @@ export function LoginPage() {
               />
             </div>
           )}
-
           <div className="relative">
-            <i data-lucide="mail" className="absolute left-3 top-3.5 w-5 h-5 text-slate-400"></i>
+            <Mail className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
             <input
               type="email"
               placeholder="Seu e-mail"
@@ -78,9 +76,8 @@ export function LoginPage() {
               required
             />
           </div>
-
           <div className="relative">
-            <i data-lucide="lock" className="absolute left-3 top-3.5 w-5 h-5 text-slate-400"></i>
+            <Lock className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
             <input
               type="password"
               placeholder="Sua senha (min 6 car.)"
@@ -90,7 +87,6 @@ export function LoginPage() {
               required
             />
           </div>
-
           <button 
             type="submit" 
             disabled={isLoading}
