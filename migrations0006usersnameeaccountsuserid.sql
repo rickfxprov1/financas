@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN name TEXT;
+ALTER TABLE accounts ADD COLUMN user_id TEXT REFERENCES users(id);
