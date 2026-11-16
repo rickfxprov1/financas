@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, Legend } from 'recharts';
 import {
   Menu, Wallet, Tags, Target, FileUp, DownloadCloud, UploadCloud, Key,
   HelpCircle, Info, Download, LogOut, BarChart3, RefreshCw, TrendingUp,
   Clock, PieChart as PieChartIcon, ArrowDownLeft, ArrowUpRight, Edit2,
-  Trash2, Edit, Plus, Check, ArrowRight, PlusCircle
+  Trash2, Edit, Plus, Check, ArrowRight, PlusCircle, ChevronDown
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from './api';
@@ -124,9 +124,27 @@ export default function App() {
   const filterQuery = `?start=${dates.start}&end=${dates.end}&month=${dates.month}`;
 
   const { data: dash, isFetching: isDashLoading } = useQuery({ queryKey: ['dashboard', filterQuery], queryFn: () => api.dashboard(filterQuery), enabled: !!user });
-  const { data: txns, isFetching: isTxnsLoading } = useQuery({ queryKey: ['transactions', filterQuery], queryFn: () => api.list(filterQuery), enabled: !!user });
   const { data: cats } = useQuery({ queryKey: ['categories'], queryFn: api.categories, enabled: !!user });
   const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: api.accounts, enabled: !!user });
+
+  // PAGINAÇÃO COM INFINITE QUERY
+  const { 
+    data: txnsData, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage,
+    isFetching: isTxnsLoading 
+  } = useInfiniteQuery({
+    queryKey: ['transactions', filterQuery],
+    queryFn: ({ pageParam = 0 }) => api.list(`${filterQuery}&limit=30&offset=${pageParam}`),
+    getNextPageParam: (lastPage: any[], allPages: any[][]) => {
+      return lastPage.length === 30 ? allPages.length * 30 : undefined;
+    },
+    initialPageParam: 0,
+    enabled: !!user,
+  });
+
+  const txns = txnsData?.pages.flat() || [];
 
   const yearQuery = `?start=${chartYear}-01-01&end=${chartYear}-12-31&month=${chartYear}-01`;
   const { data: yearData, isFetching: isYearLoading } = useQuery({
@@ -613,7 +631,7 @@ export default function App() {
               <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex justify-between items-center">
                   <h3 className="font-bold text-slate-800 dark:text-slate-200">Histórico</h3>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{txns?.length || 0} lançamentos</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{txns.length} lançamentos</span>
                 </div>
               </div>
               
@@ -623,7 +641,7 @@ export default function App() {
                 </div>
               ) : (
                 <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {txns?.map((t: any) => (
+                  {txns.map((t: any) => (
                     <li key={t.id} className="p-4 sm:px-6 hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors flex items-center justify-between group">
                       <div className="flex items-center gap-3 sm:gap-4">
                         <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm" style={{ backgroundColor: t.category_color ? `${t.category_color}20` : (darkMode ? '#1e293b' : '#f1f5f9'), color: t.category_color || (darkMode ? '#cbd5e1' : '#64748b') }}>
@@ -659,6 +677,20 @@ export default function App() {
                       <p className="text-sm text-slate-500 max-w-xs mt-1.5">Registre sua primeira despesa ou receita para começar a acompanhar suas finanças.</p>
                       <button onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })} className="mt-6 text-sm font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-2 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition">
                         <PlusCircle className="w-4 h-4" /> Fazer um lançamento
+                      </button>
+                    </li>
+                  )}
+
+                  {/* BOTÃO CARREGAR MAIS */}
+                  {hasNextPage && (
+                    <li className="p-6 flex justify-center border-t border-slate-100 dark:border-slate-800">
+                      <button 
+                        onClick={() => fetchNextPage()} 
+                        disabled={isFetchingNextPage}
+                        className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold px-6 py-2.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                        {isFetchingNextPage ? 'Carregando...' : 'Carregar mais'}
                       </button>
                     </li>
                   )}
