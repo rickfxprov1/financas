@@ -3,18 +3,29 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
   const url = new URL(request.url);
   const start = url.searchParams.get('start') || '1900-01-01';
   const end = url.searchParams.get('end') || '2100-01-01';
+  const accountIdParam = url.searchParams.get('account_id');
+  const accountId = accountIdParam ? Number(accountIdParam) : null;
   const limit = parseInt(url.searchParams.get('limit') || '30');
   const offset = parseInt(url.searchParams.get('offset') || '0');
+
+  if (accountId) {
+    const acc = await env.DB.prepare('SELECT id FROM accounts WHERE id = ? AND user_id = ?')
+      .bind(accountId, userId).first();
+    if (!acc) return Response.json({ error: 'Conta inválida' }, { status: 403 });
+  }
+
+  const accFilter = accountId ? ' AND t.account_id = ?' : '';
+  const accParam: number[] = accountId ? [accountId] : [];
 
   const { results } = await env.DB.prepare(`
     SELECT t.*, c.name AS category_name, c.color AS category_color, a.name AS account_name
     FROM transactions t
     LEFT JOIN categories c ON c.id = t.category_id
     LEFT JOIN accounts a ON a.id = t.account_id
-    WHERE t.user_id = ? AND t.date >= ? AND t.date <= ?
+    WHERE t.user_id = ? AND t.date >= ? AND t.date <= ?${accFilter}
     ORDER BY t.date DESC, t.id DESC
     LIMIT ? OFFSET ?
-  `).bind(userId, start, end, limit, offset).all();
+  `).bind(userId, start, end, ...accParam, limit, offset).all();
   
   return Response.json(results);
 };

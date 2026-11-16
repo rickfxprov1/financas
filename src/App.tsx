@@ -52,6 +52,15 @@ export default function App() {
   const currentYear = new Date().getFullYear();
   const [chartYear, setChartYear] = useState(currentYear);
   const [editId, setEditId] = useState<number | null>(null);
+
+  // ==== FILTRO DE CONTA ====
+  const [selectedAccountId, setSelectedAccountId] = useState<string>(() => {
+    return localStorage.getItem('selected_account') || '';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('selected_account', selectedAccountId);
+  }, [selectedAccountId]);
   
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE') });
   
@@ -125,13 +134,28 @@ export default function App() {
   };
 
   const dates = getFilterDates();
-  const filterQuery = `?start=${dates.start}&end=${dates.end}&month=${dates.month}`;
+  const accountParam = selectedAccountId ? `&account_id=${selectedAccountId}` : '';
+  const filterQuery = `?start=${dates.start}&end=${dates.end}&month=${dates.month}${accountParam}`;
 
   const { data: dash, isFetching: isDashLoading } = useQuery({ queryKey: ['dashboard', filterQuery], queryFn: () => api.dashboard(filterQuery), enabled: !!user });
   const { data: cats } = useQuery({ queryKey: ['categories'], queryFn: api.categories, enabled: !!user });
   const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: api.accounts, enabled: !!user });
 
-  // PAGINAÇÃO COM INFINITE QUERY
+  // Valida se a conta selecionada ainda existe
+  useEffect(() => {
+    if (selectedAccountId && accounts && accounts.length > 0 && !accounts.find((a: any) => String(a.id) === selectedAccountId)) {
+      setSelectedAccountId('');
+    }
+  }, [accounts, selectedAccountId]);
+
+  // Pré-seleciona a conta no formulário quando filtro está ativo
+  useEffect(() => {
+    if (selectedAccountId && !editId) {
+      setForm(prev => ({ ...prev, account_id: selectedAccountId }));
+    }
+  }, [selectedAccountId, editId]);
+
+  // Paginação
   const { 
     data: txnsData, 
     fetchNextPage, 
@@ -150,9 +174,9 @@ export default function App() {
 
   const txns = txnsData?.pages.flat() || [];
 
-  const yearQuery = `?start=${chartYear}-01-01&end=${chartYear}-12-31&month=${chartYear}-01`;
+  const yearQuery = `?start=${chartYear}-01-01&end=${chartYear}-12-31&month=${chartYear}-01${accountParam}`;
   const { data: yearData, isFetching: isYearLoading } = useQuery({
-    queryKey: ['yearly', chartYear],
+    queryKey: ['yearly', chartYear, selectedAccountId],
     queryFn: () => api.dashboard(yearQuery),
     enabled: !!user,
   });
@@ -182,7 +206,7 @@ export default function App() {
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['yearly'] });
       setEditId(null);
-      setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE') });
+      setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: selectedAccountId || '', date: new Date().toLocaleDateString('sv-SE') });
       toast.success(editId ? 'Atualizado!' : 'Lançado!');
     },
     onError: (err: any) => {
@@ -296,6 +320,8 @@ export default function App() {
     reader.readAsText(file);
   };
 
+  const selectedAccountName = accounts?.find((a: any) => String(a.id) === selectedAccountId)?.name;
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors relative overflow-x-hidden">
       
@@ -322,15 +348,11 @@ export default function App() {
                     <button onClick={() => { setShowBudget(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><Target className="w-4 h-4 text-slate-400" /> Orçamentos</button>
                     <button onClick={() => { setShowImport(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><FileUp className="w-4 h-4 text-slate-400" /> Importar CSV</button>
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
-                    
                     <button onClick={() => { handleBackup(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><DownloadCloud className="w-4 h-4 text-slate-400" /> Fazer Backup</button>
                     <button onClick={() => { fileInputRef.current?.click(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><UploadCloud className="w-4 h-4 text-slate-400" /> Restaurar</button>
-                    
-                    {/* NOVO BOTÃO DE SINCRONIZAR */}
                     <button onClick={() => { mergeInputRef.current?.click(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors">
                       <ArrowRightLeft className="w-4 h-4 text-emerald-500" /> Sincronizar Backup
                     </button>
-                    
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
                     <button onClick={() => { setShowPass(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><Key className="w-4 h-4 text-slate-400" /> Trocar Senha</button>
                     <button onClick={() => { setShowHelp(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><HelpCircle className="w-4 h-4 text-slate-400" /> Ajuda</button>
@@ -369,6 +391,21 @@ export default function App() {
                 <option value="this_year">Este Ano</option>
                 <option value="all">Todo</option>
               </select>
+
+              {/* SELETOR DE CONTA - só aparece se tiver 2+ contas */}
+              {accounts && accounts.length > 1 && (
+                <select 
+                  value={selectedAccountId} 
+                  onChange={e => setSelectedAccountId(e.target.value)}
+                  className="bg-slate-100/80 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 rounded-xl px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors max-w-[110px] sm:max-w-none"
+                  title="Filtrar por conta"
+                >
+                  <option value="">Todas as Contas</option>
+                  {accounts.map((a: any) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              )}
               
               <button onClick={handleRefresh} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95" title="Atualizar dados">
                 <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -470,7 +507,9 @@ export default function App() {
             
             <div className="relative">
               <div className="flex items-center justify-between">
-                <p className="text-emerald-50 font-semibold text-sm">Saldo Atual</p>
+                <p className="text-emerald-50 font-semibold text-sm">
+                  {selectedAccountId ? `Saldo — ${selectedAccountName || 'Conta'}` : 'Saldo Total'}
+                </p>
                 <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
                   <TrendingUp className="w-4 h-4" />
                 </div>
@@ -592,7 +631,9 @@ export default function App() {
 
         {dash?.budgets && dash.budgets.length > 0 && (
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60">
-            <h3 className="font-bold mb-4 text-slate-800 dark:text-slate-200">Seus Orçamentos (Mês Atual)</h3>
+            <h3 className="font-bold mb-4 text-slate-800 dark:text-slate-200">
+              Seus Orçamentos {selectedAccountId && `— ${selectedAccountName}`}
+            </h3>
             <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
               {dash.budgets.map((b: any) => {
                 const perc = Math.min((b.spent / b.budget_amount) * 100, 100);
@@ -664,7 +705,7 @@ export default function App() {
                   {editId ? 'Salvar' : 'Lançar'}
                 </button>
                 {editId && (
-                  <button type="button" onClick={() => { setEditId(null); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE') }); }} className="w-full text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 mt-1">Cancelar Edição</button>
+                  <button type="button" onClick={() => { setEditId(null); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: selectedAccountId || '', date: new Date().toLocaleDateString('sv-SE') }); }} className="w-full text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 mt-1">Cancelar Edição</button>
                 )}
               </form>
             </div>
@@ -674,7 +715,9 @@ export default function App() {
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-800/60 overflow-hidden h-full">
               <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex justify-between items-center">
-                  <h3 className="font-bold text-slate-800 dark:text-slate-200">Histórico</h3>
+                  <h3 className="font-bold text-slate-800 dark:text-slate-200">
+                    Histórico {selectedAccountId && `— ${selectedAccountName}`}
+                  </h3>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{txns.length} lançamentos</span>
                 </div>
               </div>
@@ -717,8 +760,14 @@ export default function App() {
                       <div className="bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/30 dark:to-slate-800/50 p-5 rounded-2xl mb-4">
                         <Wallet className="w-10 h-10 text-emerald-500 dark:text-emerald-400" />
                       </div>
-                      <h4 className="text-lg font-bold text-slate-700 dark:text-slate-300">Sua carteira está vazia</h4>
-                      <p className="text-sm text-slate-500 max-w-xs mt-1.5">Registre sua primeira despesa ou receita para começar a acompanhar suas finanças.</p>
+                      <h4 className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                        {selectedAccountId ? 'Nenhuma transação nesta conta' : 'Sua carteira está vazia'}
+                      </h4>
+                      <p className="text-sm text-slate-500 max-w-xs mt-1.5">
+                        {selectedAccountId 
+                          ? 'Esta conta não tem lançamentos no período selecionado.'
+                          : 'Registre sua primeira despesa ou receita para começar a acompanhar suas finanças.'}
+                      </p>
                       <button onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })} className="mt-6 text-sm font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-2 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition">
                         <PlusCircle className="w-4 h-4" /> Fazer um lançamento
                       </button>
