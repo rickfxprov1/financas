@@ -200,6 +200,20 @@ export default function App() {
     setInstallPrompt(null);
   };
 
+  const handleRefresh = () => {
+    try {
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      qc.invalidateQueries({ queryKey: ['yearly'] });
+      qc.invalidateQueries({ queryKey: ['accounts'] });
+      qc.invalidateQueries({ queryKey: ['categories'] });
+      toast.success('Dados atualizados!');
+    } catch (err) {
+      toast.error('Erro ao atualizar dados');
+      console.error(err);
+    }
+  };
+
   const handleBackup = async () => {
     try {
       const res = await fetch('/api/backup');
@@ -302,7 +316,7 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* SELETOR DE PERÍODO - Visível no celular */}
+              {/* SELETOR DE PERÍODO */}
               <select value={period} onChange={e => setPeriod(e.target.value)} className="bg-slate-100/80 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 rounded-xl px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors max-w-[100px] sm:max-w-none">
                 <option value="this_month">Este Mês</option>
                 <option value="last_month">Mês Passado</option>
@@ -310,8 +324,9 @@ export default function App() {
                 <option value="all">Todo</option>
               </select>
               
+              {/* BOTÃO DE REFRESH SEGURO */}
               <button 
-                onClick={() => { qc.invalidateQueries(); toast.success('Dados atualizados!'); }} 
+                onClick={handleRefresh} 
                 className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95" 
                 title="Atualizar dados"
               >
@@ -341,7 +356,7 @@ export default function App() {
         {showAccounts && <ManageAccounts onClose={() => setShowAccounts(false)} />}
         {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
-        {/* Header saudação - RELÓGIO VOLTA NO MOBILE */}
+        {/* Header saudação */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="w-full sm:w-auto">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
@@ -352,7 +367,6 @@ export default function App() {
             </p>
           </div>
           
-          {/* Relógio - aparece no mobile também */}
           <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm px-3 sm:px-4 py-2 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start">
             <i data-lucide="clock" className="w-4 h-4 text-emerald-500"></i>
             <span className="font-mono font-semibold text-sm md:text-lg text-slate-700 dark:text-slate-200 tracking-wider">
@@ -361,10 +375,10 @@ export default function App() {
           </div>
         </div>
 
-        {/* Grid de cards topo - SEM items-start (cards alinhados) */}
+        {/* Grid de cards topo */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           
-          {/* Card Saldo Premium - h-full para alinhar com o card da pizza */}
+          {/* Card Saldo Premium */}
           <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 rounded-3xl p-5 md:p-6 text-white shadow-2xl shadow-emerald-500/30 overflow-hidden flex flex-col justify-between group h-full">
             <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
@@ -393,7 +407,7 @@ export default function App() {
             )}
           </div>
 
-          {/* Card Pizza - flex-col para ocupar toda a altura sem espaço vazio */}
+          {/* Card Pizza */}
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60 md:col-span-2 flex flex-col">
             <div className="flex justify-between items-start mb-2 shrink-0">
               <h3 className="font-bold text-slate-800 dark:text-slate-200">Despesas por Categoria</h3>
