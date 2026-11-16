@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, RefreshCw, AlertTriangle, CheckCircle2, Loader2, Wallet, Tags, Receipt, Target, ArrowRightLeft } from 'lucide-react';
+import { X, RefreshCw, CheckCircle2, Loader2, Wallet, Tags, Receipt, Target, ArrowRightLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Props {
