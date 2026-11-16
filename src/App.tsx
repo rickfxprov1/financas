@@ -13,7 +13,6 @@ import { AboutModal } from './AboutModal';
 import { HelpModal } from './HelpModal';
 import { ManageAccounts } from './ManageAccounts';
 import { ProfileModal } from './ProfileModal';
-import { ResultModal, type ResultInfo } from './ResultModal';
 
 export default function App() {
   const { user, loading, logout } = useAuth();
@@ -31,16 +30,14 @@ export default function App() {
   const [showAccounts, setShowAccounts] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [busy, setBusy] = useState<null | 'backup' | 'restore'>(null);
-  const [result, setResult] = useState<ResultInfo | null>(null);
-
+  
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [period, setPeriod] = useState('this_month');
   const currentYear = new Date().getFullYear();
   const [chartYear, setChartYear] = useState(currentYear);
   const [editId, setEditId] = useState<number | null>(null);
   
-  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0] });
+  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE') });
   
   const [time, setTime] = useState(new Date());
 
@@ -48,13 +45,11 @@ export default function App() {
     return localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
-  // Relógio
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Tema e Ícones
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -70,7 +65,6 @@ export default function App() {
     return () => clearTimeout(timer);
   });
 
-  // PWA Install Prompt
   useEffect(() => {
     const handler = (e: any) => {
       e.preventDefault();
@@ -80,7 +74,6 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  // Click Outside no Menu
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) setShowMenu(false);
@@ -89,7 +82,6 @@ export default function App() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Reset de estados ao logar/deslogar
   useEffect(() => {
     setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false); setShowAccounts(false); setShowProfile(false);
   }, [user]);
@@ -129,7 +121,6 @@ export default function App() {
   const { data: cats } = useQuery({ queryKey: ['categories'], queryFn: api.categories, enabled: !!user });
   const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: () => fetch('/api/accounts').then(r => r.json()), enabled: !!user });
 
-  // Gráfico Anual
   const yearQuery = `?start=${chartYear}-01-01&end=${chartYear}-12-31&month=${chartYear}-01`;
   const { data: yearData, isFetching: isYearLoading } = useQuery({
     queryKey: ['yearly', chartYear],
@@ -162,7 +153,7 @@ export default function App() {
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['yearly'] });
       setEditId(null);
-      setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0] });
+      setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE') });
       toast.success(editId ? 'Atualizado!' : 'Lançado!');
     },
   });
@@ -203,129 +194,42 @@ export default function App() {
   };
 
   const handleBackup = async () => {
-    if (busy) return;
-    setBusy('backup');
     try {
       const res = await fetch('/api/backup');
-      if (!res.ok) throw new Error((await res.text()).trim() || `Erro ${res.status}`);
+      if (!res.ok) throw new Error();
       const data = await res.json();
-
-      // Data no fuso do usuário (toISOString usa UTC e pode virar o dia à noite)
-      const today = new Date().toLocaleDateString('sv-SE');
-      const fileName = `backup-financas-${today}.json`;
-
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
+      link.href = URL.createObjectURL(blob);
+      link.download = `backup-financas-${new Date().toISOString().split('T')[0]}.json`;
       link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
-
-      setResult({
-        kind: 'success',
-        title: 'Backup concluído',
-        message: `O arquivo ${fileName} foi gerado. Procure por ele na pasta Downloads do seu aparelho e guarde em um lugar seguro.`,
-        items: [
-          { label: 'Transações', value: data.transactions?.length ?? 0 },
-          { label: 'Contas', value: data.accounts?.length ?? 0 },
-          { label: 'Categorias', value: data.categories?.length ?? 0 },
-          { label: 'Orçamentos', value: data.budgets?.length ?? 0 },
-        ],
-      });
-    } catch (err: any) {
-      setResult({
-        kind: 'error',
-        title: 'Não foi possível gerar o backup',
-        message: err?.message || 'Tente novamente em instantes.',
-      });
-    } finally {
-      setBusy(null);
-    }
+      toast.success('Backup baixado!');
+    } catch { toast.error('Erro no backup.'); }
   };
 
   const handleRestore = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const resetInput = () => { if (fileInputRef.current) fileInputRef.current.value = ''; };
-
-    if (busy) { resetInput(); return; }
-
+    if (!confirm('Atenção: Isso vai substituir TODOS os seus dados. Continuar?')) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
     const reader = new FileReader();
-
-    reader.onerror = () => {
-      resetInput();
-      setResult({ kind: 'error', title: 'Não foi possível ler o arquivo', message: 'Tente selecionar o arquivo novamente.' });
-    };
-
     reader.onload = async (event) => {
-      let json: any;
       try {
-        json = JSON.parse(event.target?.result as string);
-      } catch {
-        resetInput();
-        setResult({ kind: 'error', title: 'Arquivo inválido', message: 'Este arquivo não é um backup válido. Escolha o arquivo .json gerado por "Fazer Backup".' });
-        return;
-      }
-
-      if (!Array.isArray(json?.transactions) || !Array.isArray(json?.categories)) {
-        resetInput();
-        setResult({ kind: 'error', title: 'Arquivo inválido', message: 'Este arquivo não parece ser um backup do Finanças Pro.' });
-        return;
-      }
-
-      const nTx = json.transactions.length;
-      const nAcc = Array.isArray(json.accounts) ? json.accounts.length : 0;
-      const nCat = json.categories.length;
-
-      if (!confirm(`Este backup tem ${nTx} transações, ${nAcc} contas e ${nCat} categorias.\n\nIsso vai substituir TODOS os seus dados atuais. Continuar?`)) {
-        resetInput();
-        return;
-      }
-
-      setBusy('restore');
-      try {
+        const json = JSON.parse(event.target?.result as string);
         const res = await fetch('/api/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json) });
-        if (!res.ok) {
-          const error: any = new Error((await res.text()).trim() || `Erro ${res.status}`);
-          error.fromServer = true;
-          throw error;
-        }
-        const r: any = await res.json().catch(() => ({}));
-
-        qc.invalidateQueries();
-
-        const orphans = r?.transacoes_sem_conta_original ?? 0;
-        setResult({
-          kind: 'success',
-          title: 'Restauração concluída',
-          message: 'Seus dados foram substituídos pelo conteúdo do backup.',
-          items: [
-            { label: 'Transações', value: r?.transacoes ?? nTx },
-            { label: 'Contas', value: r?.contas ?? nAcc },
-            { label: 'Categorias', value: r?.categorias ?? nCat },
-            { label: 'Orçamentos', value: r?.orcamentos ?? (Array.isArray(json.budgets) ? json.budgets.length : 0) },
-          ],
-          warning: orphans > 0
-            ? `${orphans} transação(ões) estavam ligadas a uma conta que não existe mais e foram colocadas na conta "Conta restaurada".`
-            : undefined,
-        });
-      } catch (err: any) {
-        setResult({
-          kind: 'error',
-          title: 'Não foi possível restaurar',
-          message: err?.message || 'Ocorreu um erro inesperado.',
-          note: err?.fromServer
-            ? 'Seus dados atuais foram mantidos.'
-            : 'Não foi possível confirmar o resultado. Verifique sua conexão e confira seus dados antes de tentar de novo.',
-        });
-      } finally {
-        setBusy(null);
-        resetInput();
-      }
+        if (res.ok) {
+          toast.success('Backup restaurado!');
+          qc.invalidateQueries({ queryKey: ['dashboard'] });
+          qc.invalidateQueries({ queryKey: ['transactions'] });
+          qc.invalidateQueries({ queryKey: ['categories'] });
+          qc.invalidateQueries({ queryKey: ['yearly'] });
+          qc.invalidateQueries({ queryKey: ['accounts'] });
+        } else { toast.error('Erro ao restaurar.'); }
+      } catch { toast.error('Arquivo inválido.'); }
+      if (fileInputRef.current) fileInputRef.current.value = '';
     };
-
     reader.readAsText(file);
   };
 
@@ -336,7 +240,6 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             
-            {/* LADO ESQUERDO: Menu e Logo */}
             <div className="flex items-center gap-4">
               <div className="relative" ref={menuRef}>
                 <button onClick={() => setShowMenu(!showMenu)} className="flex items-center justify-center p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 rounded-lg transition">
@@ -384,7 +287,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* LADO DIREITO: Período, Atualizar, Avatar e Tema */}
             <div className="flex items-center gap-3">
               <select value={period} onChange={e => setPeriod(e.target.value)} className="bg-slate-100 dark:bg-slate-700 border-none text-slate-700 dark:text-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none cursor-pointer">
                 <option value="this_month">Este Mês</option>
@@ -401,12 +303,7 @@ export default function App() {
                 <i data-lucide="refresh-cw" className="w-5 h-5"></i>
               </button>
 
-              {/* AVATAR DO USUÁRIO */}
-              <div 
-                onClick={() => setShowProfile(true)} 
-                className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-sm cursor-pointer hover:ring-2 ring-indigo-400 transition-all" 
-                title="Editar Perfil"
-              >
+              <div onClick={() => setShowProfile(true)} className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-sm cursor-pointer hover:ring-2 ring-indigo-400 transition-all" title="Editar Perfil">
                 {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
               </div>
 
@@ -429,18 +326,6 @@ export default function App() {
         {showAccounts && <ManageAccounts onClose={() => setShowAccounts(false)} />}
         {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
-        {busy && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 w-full max-w-xs shadow-2xl border border-slate-200 dark:border-slate-700 text-center">
-              <div className="mx-auto mb-4 w-10 h-10 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
-              <p className="font-semibold text-slate-900 dark:text-white">{busy === 'restore' ? 'Restaurando backup...' : 'Gerando backup...'}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Não feche esta página.</p>
-            </div>
-          </div>
-        )}
-
-        {result && <ResultModal info={result} onClose={() => setResult(null)} />}
-
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold">
@@ -460,12 +345,25 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-6 text-white shadow-lg shadow-indigo-500/30">
-            <p className="text-indigo-100 font-medium text-sm">Saldo no Período</p>
-            {isDashLoading ? (
-              <div className="h-10 mt-2 bg-white/20 rounded-lg animate-pulse w-3/4"></div>
-            ) : (
-              <h2 className="text-4xl font-bold mt-2">R$ {dash?.balance?.toFixed(2) ?? '0,00'}</h2>
+          {/* CARD DE SALDO ATUALIZADO */}
+          <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-6 text-white shadow-lg shadow-indigo-500/30 flex flex-col justify-between">
+            <div>
+              <p className="text-indigo-100 font-medium text-sm">Saldo Atual</p>
+              {isDashLoading ? (
+                <div className="h-10 mt-2 bg-white/20 rounded-lg animate-pulse w-3/4"></div>
+              ) : (
+                <h2 className="text-4xl font-bold mt-2">R$ {dash?.balance?.toFixed(2) ?? '0,00'}</h2>
+              )}
+            </div>
+            
+            {/* Resultado do período selecionado */}
+            {!isDashLoading && (
+              <div className="mt-4 pt-4 border-t border-white/20">
+                <p className="text-indigo-100 text-xs mb-1">Resultado do Período</p>
+                <p className={`text-lg font-semibold ${dash?.period_balance >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                  {dash?.period_balance >= 0 ? '+' : ''} R$ {dash?.period_balance?.toFixed(2) ?? '0,00'}
+                </p>
+              </div>
             )}
           </div>
 
@@ -607,7 +505,7 @@ export default function App() {
                 
                 <div>
                   <label className="block text-xs font-medium mb-1">Conta / Carteira</label>
-                  <select value={form.account_id} onChange={e => setForm({...form, account_id: e.target.value})} className="w-full border rounded-lg p-2.5 bg-slate-50 dark:bg-slate-900">
+                  <select value={form.account_id} onChange={e => setForm({...form, account_id: e.target.value})} className="w-full border rounded-lg p-2.5 bg-slate-50 dark:bg-slate-900" required>
                     <option value="">Selecione a conta...</option>
                     {accounts?.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
@@ -629,7 +527,7 @@ export default function App() {
                   {editId ? 'Salvar Alterações' : 'Lançar'}
                 </button>
                 {editId && (
-                  <button type="button" onClick={() => { setEditId(null); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0] }); }} className="w-full text-sm text-slate-500 mt-2">Cancelar Edição</button>
+                  <button type="button" onClick={() => { setEditId(null); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE') }); }} className="w-full text-sm text-slate-500 mt-2">Cancelar Edição</button>
                 )}
               </form>
             </div>
