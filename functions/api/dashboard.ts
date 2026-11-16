@@ -6,9 +6,9 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
   const month = url.searchParams.get('month') || new Date().toISOString().slice(0, 7);
 
   const [saldo, mensal, porCategoria, recentes, budgets] = await Promise.all([
-    // 1. Saldo (Soma o saldo inicial das contas + transações)
+    // 1. Saldo (Soma o saldo inicial das contas do usuário + transações do período)
     env.DB.prepare(`
-      SELECT (SELECT COALESCE(SUM(initial_balance),0) FROM accounts WHERE user_id = ? OR user_id IS NULL) +
+      SELECT (SELECT COALESCE(SUM(initial_balance),0) FROM accounts WHERE user_id = ?) +
              COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE -amount END),0) AS balance
       FROM transactions WHERE user_id = ? AND date >= ? AND date <= ?
     `).bind(userId, userId, start, end).first<{ balance: number }>(),
@@ -30,7 +30,7 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
       GROUP BY c.id ORDER BY total DESC
     `).bind(userId, start, end).all(),
     
-    // 4. Transações Recentes (JOIN com contas também)
+    // 4. Transações Recentes
     env.DB.prepare(`
       SELECT t.*, c.color AS category_color, c.name AS category_name, a.name AS account_name
       FROM transactions t 
