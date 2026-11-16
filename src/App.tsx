@@ -53,7 +53,6 @@ export default function App() {
   const [chartYear, setChartYear] = useState(currentYear);
   const [editId, setEditId] = useState<number | null>(null);
 
-  // ==== FILTRO DE CONTA ====
   const [selectedAccountId, setSelectedAccountId] = useState<string>(() => {
     return localStorage.getItem('selected_account') || '';
   });
@@ -141,21 +140,18 @@ export default function App() {
   const { data: cats } = useQuery({ queryKey: ['categories'], queryFn: api.categories, enabled: !!user });
   const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: api.accounts, enabled: !!user });
 
-  // Valida se a conta selecionada ainda existe
   useEffect(() => {
     if (selectedAccountId && accounts && accounts.length > 0 && !accounts.find((a: any) => String(a.id) === selectedAccountId)) {
       setSelectedAccountId('');
     }
   }, [accounts, selectedAccountId]);
 
-  // Pré-seleciona a conta no formulário quando filtro está ativo
   useEffect(() => {
     if (selectedAccountId && !editId) {
       setForm(prev => ({ ...prev, account_id: selectedAccountId }));
     }
   }, [selectedAccountId, editId]);
 
-  // Paginação
   const { 
     data: txnsData, 
     fetchNextPage, 
@@ -392,7 +388,6 @@ export default function App() {
                 <option value="all">Todo</option>
               </select>
 
-              {/* SELETOR DE CONTA - só aparece se tiver 2+ contas */}
               {accounts && accounts.length > 1 && (
                 <select 
                   value={selectedAccountId} 
@@ -523,7 +518,10 @@ export default function App() {
             
             {!isDashLoading && (
               <div className="relative mt-4 pt-4 border-t border-white/25">
-                <p className="text-emerald-50 text-xs mb-1 font-medium">Resultado do Período</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-emerald-50 text-xs font-medium">Resultado até Hoje</p>
+                  <span className="text-[9px] uppercase tracking-wider text-emerald-200/70 font-bold" title="Não inclui lançamentos futuros">📅</span>
+                </div>
                 <p className={`text-lg font-bold ${dash?.period_balance >= 0 ? 'text-emerald-200' : 'text-rose-200'}`}>
                   {dash?.period_balance >= 0 ? '▲ +' : '▼ '} R$ {Math.abs(dash?.period_balance || 0).toFixed(2)}
                 </p>

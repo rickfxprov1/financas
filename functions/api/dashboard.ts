@@ -8,7 +8,11 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
   
   const now = new Date();
   const brazilDate = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  const today = brazilDate.toISOString().slice(0, 10);
   const month = url.searchParams.get('month') || brazilDate.toISOString().slice(0, 7);
+
+  // O Resultado do Período só conta até HOJE (consistente com o Saldo)
+  const endForResult = end < today ? end : today;
 
   if (accountId) {
     const acc = await env.DB.prepare('SELECT id FROM accounts WHERE id = ? AND user_id = ?')
@@ -26,17 +30,20 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
   const initialBalanceParam = accountId ? [accountId, userId] : [userId];
 
   const [saldo, periodResult, mensal, porCategoria, recentes, budgets] = await Promise.all([
+    // SALDO: saldo inicial + transações até HOJE
     env.DB.prepare(`
       SELECT ${initialBalanceQuery} +
              COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE -amount END), 0) AS balance
       FROM transactions WHERE user_id = ? AND date <= date('now')${accFilter}
     `).bind(...initialBalanceParam, userId, ...accParam).first<{ balance: number }>(),
 
+    // RESULTADO DO PERÍODO: APENAS transações até HOJE (dentro do período escolhido)
     env.DB.prepare(`
       SELECT COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE -amount END), 0) AS period_balance
       FROM transactions WHERE user_id = ? AND date >= ? AND date <= ?${accFilter}
-    `).bind(userId, start, end, ...accParam).first<{ period_balance: number }>(),
+    `).bind(userId, start, endForResult, ...accParam).first<{ period_balance: number }>(),
 
+    // GRÁFICO MENSAL: mantém o período original (inclui meses futuros para planejamento)
     env.DB.prepare(`
       SELECT strftime('%Y-%m', date) AS month,
              SUM(CASE WHEN type='income'  THEN amount ELSE 0 END) AS income,
@@ -45,6 +52,7 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
       GROUP BY month ORDER BY month ASC
     `).bind(userId, start, end, ...accParam).all(),
 
+    // PIZZA POR CATEGORIA: mantém o período original
     env.DB.prepare(`
       SELECT c.name, c.color, SUM(t.amount) AS total
       FROM transactions t JOIN categories c ON c.id = t.category_id
@@ -52,6 +60,7 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
       GROUP BY c.id ORDER BY total DESC
     `).bind(userId, start, end, ...accParam).all(),
 
+    // RECENTES: mantém o período original
     env.DB.prepare(`
       SELECT t.*, c.color AS category_color, c.name AS category_name, a.name AS account_name
       FROM transactions t
@@ -61,6 +70,7 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
       ORDER BY t.date DESC, t.id DESC LIMIT 10
     `).bind(userId, start, end, ...accParam).all(),
 
+    // ORÇAMENTOS
     env.DB.prepare(`
       SELECT b.category_id, b.amount as budget_amount, c.name, c.color,
              COALESCE(SUM(t.amount), 0) as spent
