@@ -5,7 +5,7 @@ import {
   Menu, Wallet, Tags, Target, FileUp, DownloadCloud, UploadCloud, Key,
   HelpCircle, Info, Download, LogOut, BarChart3, RefreshCw, TrendingUp,
   Clock, PieChart as PieChartIcon, ArrowDownLeft, ArrowUpRight, Edit2,
-  Trash2, Edit, Plus, Check, ArrowRight, PlusCircle, ChevronDown
+  Trash2, Edit, Plus, Check, ArrowRight, PlusCircle, ChevronDown, ArrowRightLeft
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from './api';
@@ -21,11 +21,13 @@ import { ManageAccounts } from './ManageAccounts';
 import { ProfileModal } from './ProfileModal';
 import { RestoreModal } from './RestoreModal';
 import { ImportResultModal } from './ImportResultModal';
+import { MergeModal } from './MergeModal';
 
 export default function App() {
   const { user, loading, logout } = useAuth();
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mergeInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -41,6 +43,8 @@ export default function App() {
   
   const [restoreData, setRestoreData] = useState<any>(null);
   const [restoreFileName, setRestoreFileName] = useState('');
+  const [mergeData, setMergeData] = useState<any>(null);
+  const [mergeFileName, setMergeFileName] = useState('');
   const [importResult, setImportResult] = useState<any>(null);
 
   const [installPrompt, setInstallPrompt] = useState<any>(null);
@@ -275,6 +279,23 @@ export default function App() {
     reader.readAsText(file);
   };
 
+  const handleMergeSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        setMergeData(json);
+        setMergeFileName(file.name);
+      } catch {
+        toast.error('Arquivo inválido.');
+      }
+      if (mergeInputRef.current) mergeInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors relative overflow-x-hidden">
       
@@ -301,8 +322,15 @@ export default function App() {
                     <button onClick={() => { setShowBudget(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><Target className="w-4 h-4 text-slate-400" /> Orçamentos</button>
                     <button onClick={() => { setShowImport(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><FileUp className="w-4 h-4 text-slate-400" /> Importar CSV</button>
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
+                    
                     <button onClick={() => { handleBackup(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><DownloadCloud className="w-4 h-4 text-slate-400" /> Fazer Backup</button>
                     <button onClick={() => { fileInputRef.current?.click(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><UploadCloud className="w-4 h-4 text-slate-400" /> Restaurar</button>
+                    
+                    {/* NOVO BOTÃO DE SINCRONIZAR */}
+                    <button onClick={() => { mergeInputRef.current?.click(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors">
+                      <ArrowRightLeft className="w-4 h-4 text-emerald-500" /> Sincronizar Backup
+                    </button>
+                    
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
                     <button onClick={() => { setShowPass(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><Key className="w-4 h-4 text-slate-400" /> Trocar Senha</button>
                     <button onClick={() => { setShowHelp(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><HelpCircle className="w-4 h-4 text-slate-400" /> Ajuda</button>
@@ -354,6 +382,7 @@ export default function App() {
                 {darkMode ? <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg> : <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>}
               </button>
               <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={handleRestore} />
+              <input type="file" accept=".json" className="hidden" ref={mergeInputRef} onChange={handleMergeSelect} />
             </div>
           </div>
         </div>
@@ -382,6 +411,21 @@ export default function App() {
             backupData={restoreData}
             fileName={restoreFileName}
             onClose={() => { setRestoreData(null); setRestoreFileName(''); }}
+            onSuccess={() => {
+              qc.invalidateQueries({ queryKey: ['dashboard'] });
+              qc.invalidateQueries({ queryKey: ['transactions'] });
+              qc.invalidateQueries({ queryKey: ['categories'] });
+              qc.invalidateQueries({ queryKey: ['yearly'] });
+              qc.invalidateQueries({ queryKey: ['accounts'] });
+            }}
+          />
+        )}
+
+        {mergeData && (
+          <MergeModal
+            backupData={mergeData}
+            fileName={mergeFileName}
+            onClose={() => { setMergeData(null); setMergeFileName(''); }}
             onSuccess={() => {
               qc.invalidateQueries({ queryKey: ['dashboard'] });
               qc.invalidateQueries({ queryKey: ['transactions'] });
@@ -681,7 +725,6 @@ export default function App() {
                     </li>
                   )}
 
-                  {/* BOTÃO CARREGAR MAIS */}
                   {hasNextPage && (
                     <li className="p-6 flex justify-center border-t border-slate-100 dark:border-slate-800">
                       <button 
