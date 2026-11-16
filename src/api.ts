@@ -1,12 +1,24 @@
-const j = (r: Response) => { if (!r.ok) throw new Error(r.statusText); return r.json(); };
+const handleResponse = async (res: Response) => {
+  if (res.status === 401) {
+    // Sessão expirada - recarrega para forçar novo login
+    window.location.reload();
+    throw new Error('Sessão expirada');
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+};
 
 export const api = {
-  list:     (filter: string = '') => fetch(`/api/transactions${filter}`).then(j),
-  create:   (tx: any) => fetch('/api/transactions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(tx) }).then(j),
-  update:   (id: number, tx: any) => fetch(`/api/transactions/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(tx) }).then(j),
-  remove:   (id: number) => fetch(`/api/transactions/${id}`, { method:'DELETE' }).then(j),
-  dashboard:(filter: string = '') => fetch(`/api/dashboard${filter}`).then(j),
-  categories:() => fetch('/api/categories').then(j),
-  setBudget:(data: any) => fetch('/api/budgets', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) }).then(j),
-  importCSV:(csvData: string) => fetch('/api/import', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ csvData }) }).then(j),
+  list:     (filter: string = '') => fetch(`/api/transactions${filter}`).then(handleResponse),
+  create:   (tx: any) => fetch('/api/transactions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tx) }).then(handleResponse),
+  update:   (id: number, tx: any) => fetch(`/api/transactions/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tx) }).then(handleResponse),
+  remove:   (id: number) => fetch(`/api/transactions/${id}`, { method: 'DELETE' }).then(handleResponse),
+  dashboard:(filter: string = '') => fetch(`/api/dashboard${filter}`).then(handleResponse),
+  categories:() => fetch('/api/categories').then(handleResponse),
+  accounts: () => fetch('/api/accounts').then(handleResponse),
+  setBudget:(data: any) => fetch('/api/budgets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(handleResponse),
+  importCSV:(csvData: string, account_id: number) => fetch('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csvData, account_id }) }).then(handleResponse),
 };
