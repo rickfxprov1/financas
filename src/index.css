@@ -1,13 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 body {
   margin: 0;
   background: #f3f4f6;
-  font-family: system-ui, -apple-system, sans-serif;
-}
-
-.dark body {
-  background: #0f172a;
+  font-family: system-ui, sans-serif;
 }
