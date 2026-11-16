@@ -302,11 +302,12 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <select value={period} onChange={e => setPeriod(e.target.value)} className="hidden sm:block bg-slate-100/80 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 rounded-xl px-3 py-2 text-sm font-semibold outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+              {/* SELETOR DE PERÍODO - Visível no celular */}
+              <select value={period} onChange={e => setPeriod(e.target.value)} className="bg-slate-100/80 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 rounded-xl px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors max-w-[100px] sm:max-w-none">
                 <option value="this_month">Este Mês</option>
                 <option value="last_month">Mês Passado</option>
                 <option value="this_year">Este Ano</option>
-                <option value="all">Todo o Período</option>
+                <option value="all">Todo</option>
               </select>
               
               <button 
