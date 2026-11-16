@@ -4,7 +4,12 @@ import { X, FileUp } from 'lucide-react';
 import { api } from './api';
 import toast from 'react-hot-toast';
 
-export function ImportModal({ onClose }: { onClose: () => void }) {
+interface Props {
+  onClose: () => void;
+  onSuccess: (result: { imported: number; skipped: number }) => void;
+}
+
+export function ImportModal({ onClose, onSuccess }: Props) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
   const [accountId, setAccountId] = useState('');
@@ -20,10 +25,9 @@ export function ImportModal({ onClose }: { onClose: () => void }) {
     try {
       const res = await api.importCSV(text, Number(accountId));
       if (res.imported > 0) {
-        toast.success(`${res.imported} transações importadas! ${res.skipped > 0 ? `(${res.skipped} linhas inválidas ignoradas)` : ''}`);
         qc.invalidateQueries({ queryKey: ['dashboard'] });
         qc.invalidateQueries({ queryKey: ['transactions'] });
-        onClose();
+        onSuccess({ imported: res.imported, skipped: res.skipped || 0 });
       } else {
         toast.error('Nenhuma transação válida encontrada. Verifique o formato.');
       }

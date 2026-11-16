@@ -19,6 +19,8 @@ import { AboutModal } from './AboutModal';
 import { HelpModal } from './HelpModal';
 import { ManageAccounts } from './ManageAccounts';
 import { ProfileModal } from './ProfileModal';
+import { RestoreModal } from './RestoreModal';
+import { ImportResultModal } from './ImportResultModal';
 
 export default function App() {
   const { user, loading, logout } = useAuth();
@@ -37,6 +39,10 @@ export default function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   
+  const [restoreData, setRestoreData] = useState<any>(null);
+  const [restoreFileName, setRestoreFileName] = useState('');
+  const [importResult, setImportResult] = useState<any>(null);
+
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [period, setPeriod] = useState('this_month');
   const currentYear = new Date().getFullYear();
@@ -225,31 +231,27 @@ export default function App() {
       link.href = URL.createObjectURL(blob);
       link.download = `backup-financas-${new Date().toISOString().split('T')[0]}.json`;
       link.click();
-      toast.success('Backup baixado!');
+      
+      const acc = data.accounts?.length || 0;
+      const cat = data.categories?.length || 0;
+      const tx = data.transactions?.length || 0;
+      const bud = data.budgets?.length || 0;
+      toast.success(`Backup: ${acc} contas, ${cat} categorias, ${tx} transações, ${bud} orçamentos`);
     } catch { toast.error('Erro no backup.'); }
   };
 
   const handleRestore = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!confirm('Atenção: Isso vai substituir TODOS os seus dados. Continuar?')) {
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
     const reader = new FileReader();
-    reader.onload = async (event) => {
+    reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
-        const res = await fetch('/api/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json) });
-        if (res.ok) {
-          toast.success('Backup restaurado!');
-          qc.invalidateQueries({ queryKey: ['dashboard'] });
-          qc.invalidateQueries({ queryKey: ['transactions'] });
-          qc.invalidateQueries({ queryKey: ['categories'] });
-          qc.invalidateQueries({ queryKey: ['yearly'] });
-          qc.invalidateQueries({ queryKey: ['accounts'] });
-        } else { toast.error('Erro ao restaurar.'); }
-      } catch { toast.error('Arquivo inválido.'); }
+        setRestoreData(json);
+        setRestoreFileName(file.name);
+      } catch {
+        toast.error('Arquivo inválido.');
+      }
       if (fileInputRef.current) fileInputRef.current.value = '';
     };
     reader.readAsText(file);
@@ -343,11 +345,42 @@ export default function App() {
         {showCats && <ManageCategories onClose={() => setShowCats(false)} />}
         {showPass && <ChangePassword onClose={() => setShowPass(false)} />}
         {showBudget && <BudgetsModal onClose={() => setShowBudget(false)} cats={cats || []} />}
-        {showImport && <ImportModal onClose={() => setShowImport(false)} />}
+        {showImport && (
+          <ImportModal
+            onClose={() => setShowImport(false)}
+            onSuccess={(result) => {
+              setShowImport(false);
+              setImportResult(result);
+            }}
+          />
+        )}
         {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
         {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
         {showAccounts && <ManageAccounts onClose={() => setShowAccounts(false)} />}
         {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+
+        {restoreData && (
+          <RestoreModal
+            backupData={restoreData}
+            fileName={restoreFileName}
+            onClose={() => { setRestoreData(null); setRestoreFileName(''); }}
+            onSuccess={() => {
+              qc.invalidateQueries({ queryKey: ['dashboard'] });
+              qc.invalidateQueries({ queryKey: ['transactions'] });
+              qc.invalidateQueries({ queryKey: ['categories'] });
+              qc.invalidateQueries({ queryKey: ['yearly'] });
+              qc.invalidateQueries({ queryKey: ['accounts'] });
+            }}
+          />
+        )}
+
+        {importResult && (
+          <ImportResultModal
+            imported={importResult.imported}
+            skipped={importResult.skipped}
+            onClose={() => setImportResult(null)}
+          />
+        )}
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="w-full sm:w-auto">
