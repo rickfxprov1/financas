@@ -3,5 +3,5 @@ dist/
 .wrangler/
 .dev.vars
 .env
-
+backup-*.sql
 
