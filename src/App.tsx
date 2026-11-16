@@ -249,12 +249,12 @@ export default function App() {
         <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-3xl"></div>
       </div>
 
-      {/* NAVBAR GLASSMORPHISM */}
+      {/* NAVBAR GLASSMORPHISM - 100% de largura */}
       <nav className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800/60 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="relative" ref={menuRef}>
                 <button onClick={() => setShowMenu(!showMenu)} className="flex items-center justify-center p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all active:scale-95">
                   <i data-lucide="menu" className="w-5 h-5"></i>
@@ -301,8 +301,8 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <select value={period} onChange={e => setPeriod(e.target.value)} className="bg-slate-100/80 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 rounded-xl px-3 py-2 text-sm font-semibold outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <select value={period} onChange={e => setPeriod(e.target.value)} className="hidden sm:block bg-slate-100/80 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 rounded-xl px-3 py-2 text-sm font-semibold outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                 <option value="this_month">Este Mês</option>
                 <option value="last_month">Mês Passado</option>
                 <option value="this_year">Este Ano</option>
@@ -314,15 +314,15 @@ export default function App() {
                 className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95" 
                 title="Atualizar dados"
               >
-                <i data-lucide="refresh-cw" className="w-5 h-5"></i>
+                <i data-lucide="refresh-cw" className="w-4 h-4 sm:w-5 sm:h-5"></i>
               </button>
 
-              <div onClick={() => setShowProfile(true)} className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold shadow-md shadow-emerald-500/30 cursor-pointer hover:ring-2 ring-emerald-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 transition-all" title="Editar Perfil">
+              <div onClick={() => setShowProfile(true)} className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-emerald-500/30 cursor-pointer hover:ring-2 ring-emerald-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 transition-all" title="Editar Perfil">
                 {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
               </div>
 
               <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95">
-                <i data-lucide={darkMode ? "sun" : "moon"} className="w-5 h-5"></i>
+                <i data-lucide={darkMode ? "sun" : "moon"} className="w-4 h-4 sm:w-5 sm:h-5"></i>
               </button>
               <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={handleRestore} />
             </div>
@@ -330,7 +330,8 @@ export default function App() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* MAIN - 100% de largura com padding adaptativo */}
+      <main className="w-full px-3 sm:px-4 lg:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
         {showCats && <ManageCategories onClose={() => setShowCats(false)} />}
         {showPass && <ChangePassword onClose={() => setShowPass(false)} />}
         {showBudget && <BudgetsModal onClose={() => setShowBudget(false)} cats={cats || []} />}
@@ -340,33 +341,31 @@ export default function App() {
         {showAccounts && <ManageAccounts onClose={() => setShowAccounts(false)} />}
         {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
-        {/* Header saudação */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">
+        {/* Header saudação - responsivo */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="w-full sm:w-auto">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
               {getGreeting()}, <span className="bg-gradient-to-r from-emerald-500 to-emerald-700 bg-clip-text text-transparent">{user.name ? capitalize(user.name) : capitalize(user.email.split('@')[0])}</span>!
             </h1>
-            <p className="text-sm text-slate-500 mt-1 capitalize font-medium">
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 capitalize font-medium">
               {time.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
           
-          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2">
+          <div className="hidden sm:flex bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm px-3 sm:px-4 py-2 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 items-center gap-2">
             <i data-lucide="clock" className="w-4 h-4 text-emerald-500"></i>
-            <span className="font-mono font-semibold text-lg text-slate-700 dark:text-slate-200 tracking-wider">
+            <span className="font-mono font-semibold text-sm md:text-lg text-slate-700 dark:text-slate-200 tracking-wider">
               {time.toLocaleTimeString('pt-BR')}
             </span>
           </div>
         </div>
 
-        {/* Cards topo */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Grid de cards topo - 100% largura */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 items-start">
           
           {/* Card Saldo Premium */}
-          <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 rounded-3xl p-6 text-white shadow-2xl shadow-emerald-500/30 overflow-hidden flex flex-col justify-between group">
-            {/* Padrão de grade */}
+          <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 rounded-3xl p-5 md:p-6 text-white shadow-2xl shadow-emerald-500/30 overflow-hidden flex flex-col justify-between group">
             <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-            {/* Brilho */}
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
             
             <div className="relative">
@@ -379,7 +378,7 @@ export default function App() {
               {isDashLoading ? (
                 <div className="h-12 mt-2 bg-white/20 rounded-lg animate-pulse w-3/4"></div>
               ) : (
-                <h2 className="text-4xl font-black mt-2 tracking-tight">R$ {dash?.balance?.toFixed(2) ?? '0,00'}</h2>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mt-2 tracking-tight break-words">R$ {dash?.balance?.toFixed(2) ?? '0,00'}</h2>
               )}
             </div>
             
@@ -394,7 +393,7 @@ export default function App() {
           </div>
 
           {/* Gráfico Pizza */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60 md:col-span-2">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60 md:col-span-2">
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-bold text-slate-800 dark:text-slate-200">Despesas por Categoria</h3>
               <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Período</span>
@@ -419,7 +418,7 @@ export default function App() {
         </div>
 
         {/* Gráfico Fluxo */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60">
           <div className="flex justify-between items-start mb-4">
             <h3 className="font-bold text-slate-800 dark:text-slate-200">Fluxo de Caixa</h3>
             <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Receita x Despesa</span>
@@ -440,7 +439,7 @@ export default function App() {
         </div>
 
         {/* Gráfico Anual */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
             <div>
               <h3 className="font-bold text-lg text-slate-800 dark:text-slate-200">Visão Anual</h3>
@@ -492,9 +491,9 @@ export default function App() {
 
         {/* Orçamentos */}
         {dash?.budgets && dash.budgets.length > 0 && (
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60">
             <h3 className="font-bold mb-4 text-slate-800 dark:text-slate-200">Seus Orçamentos (Mês Atual)</h3>
-            <div className="grid sm:grid-cols-2 gap-6">
+            <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
               {dash.budgets.map((b: any) => {
                 const perc = Math.min((b.spent / b.budget_amount) * 100, 100);
                 return (
@@ -513,12 +512,12 @@ export default function App() {
           </div>
         )}
 
-        {/* Formulário + Lista */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Grid Form + Lista - 100% largura */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           
           {/* Formulário moderno */}
           <div className="lg:col-span-1" ref={formRef}>
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60 sticky top-24">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60 sticky top-24">
               <h3 className="font-bold mb-5 flex items-center gap-2 text-slate-800 dark:text-slate-200">
                 <span className="bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400">
                   <i data-lucide={editId ? "edit" : "plus"} className="w-4 h-4"></i>
@@ -574,9 +573,9 @@ export default function App() {
           </div>
 
           {/* Lista de transações */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 xl:col-span-3">
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-800/60 overflow-hidden h-full">
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+              <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex justify-between items-center">
                   <h3 className="font-bold text-slate-800 dark:text-slate-200">Histórico</h3>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{txns?.length || 0} lançamentos</span>
@@ -591,13 +590,13 @@ export default function App() {
                 <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                   {txns?.map((t: any) => (
                     <li key={t.id} className="p-4 sm:px-6 hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors flex items-center justify-between group">
-                      <div className="flex items-center gap-4">
-                        <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm" style={{ backgroundColor: t.category_color ? `${t.category_color}20` : (darkMode ? '#1e293b' : '#f1f5f9'), color: t.category_color || (darkMode ? '#cbd5e1' : '#64748b') }}>
-                          <i data-lucide={t.type === 'income' ? 'arrow-down-left' : 'arrow-up-right'} className="w-5 h-5"></i>
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm" style={{ backgroundColor: t.category_color ? `${t.category_color}20` : (darkMode ? '#1e293b' : '#f1f5f9'), color: t.category_color || (darkMode ? '#cbd5e1' : '#64748b') }}>
+                          <i data-lucide={t.type === 'income' ? 'arrow-down-left' : 'arrow-up-right'} className="w-4 h-4 sm:w-5 sm:h-5"></i>
                         </div>
                         <div>
                           <p className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100">{t.description}</p>
-                          <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium">
                             {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')} 
                             {t.category_name && ` • ${t.category_name}`}
                             {t.account_name && ` • ${t.account_name}`}
@@ -605,7 +604,7 @@ export default function App() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className={`font-bold text-sm sm:text-base ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        <span className={`font-bold text-sm sm:text-base whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
                           {t.type === 'income' ? '+' : '-'} R$ {t.amount.toFixed(2)}
                         </span>
                         <div className="hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 rounded-xl p-1 transition-all">
@@ -617,7 +616,7 @@ export default function App() {
                   ))}
                   
                   {(!txns || txns.length === 0) && (
-                    <li className="flex flex-col items-center justify-center p-16 text-center">
+                    <li className="flex flex-col items-center justify-center p-12 sm:p-16 text-center">
                       <div className="bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/30 dark:to-slate-800/50 p-5 rounded-2xl mb-4">
                         <i data-lucide="wallet" className="w-10 h-10 text-emerald-500 dark:text-emerald-400"></i>
                       </div>
