@@ -1,12 +1,13 @@
-import { verifyPassword, hashPassword, sha256 } from '../_utils';
+import { verifyPassword, hashPassword, sha256, extractSessionCookie } from '../_utils';
 
 export const onRequestPost: PagesFunction<{ DB: D1Database }> = async ({ request, env }) => {
   const cookie = request.headers.get('Cookie') || '';
-  const match = cookie.match(/session=([^;]+)/);
-  if (!match) return new Response('Não autorizado', { status: 401 });
+  const sessionToken = extractSessionCookie(cookie);
+  if (!sessionToken) return new Response('Não autorizado', { status: 401 });
 
-  const tokenHash = await sha256(match[1]);
-  const session = await env.DB.prepare('SELECT user_id FROM sessions WHERE token_hash = ? AND expires_at > ?').bind(tokenHash, Date.now()).first();
+  const tokenHash = await sha256(sessionToken);
+  const session = await env.DB.prepare('SELECT user_id FROM sessions WHERE token_hash = ? AND expires_at > ?')
+    .bind(tokenHash, Date.now()).first();
   if (!session) return new Response('Sessão inválida', { status: 401 });
 
   const { currentPassword, newPassword } = await request.json<any>();
@@ -19,13 +20,23 @@ export const onRequestPost: PagesFunction<{ DB: D1Database }> = async ({ request
     return new Response('A nova senha deve ter pelo menos 6 caracteres', { status: 400 });
   }
 
-  const user = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(session.user_id).first();
+  const user = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
+    .bind(session.user_id).first();
   
   const isValid = await verifyPassword(currentPassword, user.password_hash as string);
   if (!isValid) return new Response('Senha atual incorreta', { status: 400 });
 
   const newHash = await hashPassword(newPassword);
-  await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, session.user_id).run();
   
-  return new Response('Senha atualizada com sucesso', { status: 200 });
+  // Atualiza a senha E invalida TODAS as sessões (força login em todos os dispositivos)
+  await env.DB.batch([
+    env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, session.user_id),
+    env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(session.user_id)
+  ]);
+
+  // Cookie expirado para o navegador atual também
+  return new Response('Senha atualizada. Faça login novamente.', {
+    status: 200,
+    headers: { 'Set-Cookie': 'session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0' }
+  });
 };

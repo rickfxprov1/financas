@@ -21,22 +21,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const checkSession = async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+      } else if (res.status === 401) {
+        setUser(null);
+      }
+    } catch {
+      // erro de rede — mantém estado atual
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Busca os dados do usuário (incluindo o nome) ao abrir o app
-    fetch('/api/auth/me')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => { 
-        setUser(data); 
-        setLoading(false); 
-      })
-      .catch(() => setLoading(false));
+    checkSession();
+    // Verifica a cada 5 min se a sessão ainda é válida
+    const interval = setInterval(checkSession, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await fetch('/api/auth/login', { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ email, password }) 
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
     });
     if (!res.ok) throw new Error(await res.text());
     const userData = await res.json();
@@ -49,10 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string, name: string) => {
-    const res = await fetch('/api/auth/register', { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ email, password, name }) 
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name })
     });
     if (!res.ok) throw new Error(await res.text());
     await login(email, password);

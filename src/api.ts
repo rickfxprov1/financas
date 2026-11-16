@@ -1,6 +1,5 @@
 const handleResponse = async (res: Response) => {
   if (res.status === 401) {
-    // Sessão expirada - recarrega para forçar novo login
     window.location.reload();
     throw new Error('Sessão expirada');
   }
