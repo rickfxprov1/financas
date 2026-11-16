@@ -249,7 +249,7 @@ export default function App() {
         <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-3xl"></div>
       </div>
 
-      {/* NAVBAR GLASSMORPHISM - 100% de largura */}
+      {/* NAVBAR GLASSMORPHISM */}
       <nav className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800/60 sticky top-0 z-40">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
@@ -330,7 +330,6 @@ export default function App() {
         </div>
       </nav>
 
-      {/* MAIN - 100% de largura com padding adaptativo */}
       <main className="w-full px-3 sm:px-4 lg:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
         {showCats && <ManageCategories onClose={() => setShowCats(false)} />}
         {showPass && <ChangePassword onClose={() => setShowPass(false)} />}
@@ -341,7 +340,7 @@ export default function App() {
         {showAccounts && <ManageAccounts onClose={() => setShowAccounts(false)} />}
         {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
-        {/* Header saudação - responsivo */}
+        {/* Header saudação - RELÓGIO VOLTA NO MOBILE */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="w-full sm:w-auto">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
@@ -352,7 +351,8 @@ export default function App() {
             </p>
           </div>
           
-          <div className="hidden sm:flex bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm px-3 sm:px-4 py-2 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 items-center gap-2">
+          {/* Relógio - aparece no mobile também */}
+          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm px-3 sm:px-4 py-2 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start">
             <i data-lucide="clock" className="w-4 h-4 text-emerald-500"></i>
             <span className="font-mono font-semibold text-sm md:text-lg text-slate-700 dark:text-slate-200 tracking-wider">
               {time.toLocaleTimeString('pt-BR')}
@@ -360,11 +360,11 @@ export default function App() {
           </div>
         </div>
 
-        {/* Grid de cards topo - 100% largura */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 items-start">
+        {/* Grid de cards topo - SEM items-start (cards alinhados) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           
-          {/* Card Saldo Premium */}
-          <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 rounded-3xl p-5 md:p-6 text-white shadow-2xl shadow-emerald-500/30 overflow-hidden flex flex-col justify-between group">
+          {/* Card Saldo Premium - h-full para alinhar com o card da pizza */}
+          <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 rounded-3xl p-5 md:p-6 text-white shadow-2xl shadow-emerald-500/30 overflow-hidden flex flex-col justify-between group h-full">
             <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
             
@@ -392,28 +392,32 @@ export default function App() {
             )}
           </div>
 
-          {/* Gráfico Pizza */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60 md:col-span-2">
-            <div className="flex justify-between items-start mb-2">
+          {/* Card Pizza - flex-col para ocupar toda a altura sem espaço vazio */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60 md:col-span-2 flex flex-col">
+            <div className="flex justify-between items-start mb-2 shrink-0">
               <h3 className="font-bold text-slate-800 dark:text-slate-200">Despesas por Categoria</h3>
               <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Período</span>
             </div>
-            {isDashLoading ? (
-              <div className="flex h-[200px] items-center justify-center">
+            
+            <div className="flex-1 flex items-center justify-center min-h-[180px]">
+              {isDashLoading ? (
                 <div className="w-32 h-32 rounded-full border-4 border-slate-200 dark:border-slate-700 border-t-emerald-500 animate-spin"></div>
-              </div>
-            ) : dash?.byCategory && dash.byCategory.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={dash.byCategory} dataKey="total" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={4} cornerRadius={8}>
-                    {dash.byCategory.map((c: any) => <Cell key={c.name} fill={c.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} formatter={(v: any) => `R$ ${Number(v).toFixed(2)}`} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-[200px] items-center justify-center text-slate-400 text-sm">Nenhuma despesa registrada</div>
-            )}
+              ) : dash?.byCategory && dash.byCategory.length > 0 ? (
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie data={dash.byCategory} dataKey="total" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={4} cornerRadius={8}>
+                      {dash.byCategory.map((c: any) => <Cell key={c.name} fill={c.color} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} formatter={(v: any) => `R$ ${Number(v).toFixed(2)}`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex flex-col items-center justify-center text-slate-400 text-sm gap-2">
+                  <i data-lucide="pie-chart" className="w-8 h-8 opacity-40"></i>
+                  <span>Nenhuma despesa registrada</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -512,7 +516,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Grid Form + Lista - 100% largura */}
+        {/* Grid Form + Lista */}
         <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           
           {/* Formulário moderno */}
