@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { X, RefreshCw, CheckCircle2, Loader2, Wallet, Tags, Receipt, Target, ArrowRightLeft } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { X, RefreshCw, CheckCircle2, Loader2, Wallet, Tags, Receipt, Target, ArrowRightLeft, Building2, RotateCcw } from 'lucide-react';
+import { api } from './api';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -12,6 +14,9 @@ interface Props {
 export function MergeModal({ backupData, fileName, onClose, onSuccess }: Props) {
   const [step, setStep] = useState<'preview' | 'loading' | 'result'>('preview');
   const [result, setResult] = useState<any>(null);
+  const [targetAccountId, setTargetAccountId] = useState<string>('');
+
+  const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: api.accounts });
 
   const counts = {
     accounts: backupData.accounts?.length || 0,
@@ -26,11 +31,14 @@ export function MergeModal({ backupData, fileName, onClose, onSuccess }: Props) 
       const res = await fetch('/api/merge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(backupData)
+        body: JSON.stringify({
+          backup: backupData,
+          target_account_id: targetAccountId ? Number(targetAccountId) : null,
+        })
       });
       if (res.ok) {
         const data = await res.json();
-        setResult(data.stats);
+        setResult({ ...data.stats, sync_batch_id: data.sync_batch_id });
         setStep('result');
         onSuccess();
       } else {
@@ -43,9 +51,30 @@ export function MergeModal({ backupData, fileName, onClose, onSuccess }: Props) 
     }
   };
 
+  const handleUndo = async () => {
+    if (!confirm(`Desfazer sincronização? Isso vai apagar as ${result.transactions_added} transações adicionadas.`)) return;
+    try {
+      const res = await fetch('/api/merge/undo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sync_batch_id: result.sync_batch_id })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`${data.deleted} transações removidas`);
+        onSuccess();
+        onClose();
+      } else {
+        toast.error('Erro ao desfazer');
+      }
+    } catch {
+      toast.error('Erro ao desfazer');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
         
         {step === 'preview' && (
           <>
@@ -69,6 +98,29 @@ export function MergeModal({ backupData, fileName, onClose, onSuccess }: Props) 
             <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl mb-4">
               <p className="text-xs text-slate-500 mb-1">Arquivo selecionado:</p>
               <p className="text-sm font-mono text-slate-700 dark:text-slate-300 truncate">{fileName}</p>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-emerald-500" />
+                Conta de Destino
+              </label>
+              <select
+                value={targetAccountId}
+                onChange={e => setTargetAccountId(e.target.value)}
+                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/50 text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              >
+                <option value="">Manter contas originais do backup</option>
+                {accounts?.map((a: any) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                {targetAccountId
+                  ? `⚠️ Todas as transações serão redirecionadas para a conta selecionada (as contas originais do backup serão ignoradas).`
+                  : `As transações manterão as contas originais do backup. Se a conta não existir, será criada automaticamente.`
+                }
+              </p>
             </div>
 
             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Conteúdo do backup:</h3>
@@ -125,14 +177,22 @@ export function MergeModal({ backupData, fileName, onClose, onSuccess }: Props) 
                 <div className="flex items-center gap-2"><Receipt className="w-4 h-4 text-emerald-500" /><span className="text-sm font-medium text-slate-700 dark:text-slate-300">Transações adicionadas</span></div>
                 <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{result.transactions_added}</span>
               </div>
+              {result.transactions_redirected > 0 && (
+                <div className="flex justify-between items-center bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl">
+                  <div className="flex items-center gap-2"><Building2 className="w-4 h-4 text-blue-500" /><span className="text-sm font-medium text-slate-700 dark:text-slate-300">Redirecionadas para conta destino</span></div>
+                  <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{result.transactions_redirected}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
                 <div className="flex items-center gap-2"><RefreshCw className="w-4 h-4 text-slate-400" /><span className="text-sm font-medium text-slate-700 dark:text-slate-300">Duplicadas ignoradas</span></div>
                 <span className="text-xl font-bold text-slate-500">{result.transactions_skipped}</span>
               </div>
-              <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
-                <div className="flex items-center gap-2"><Wallet className="w-4 h-4 text-slate-400" /><span className="text-sm font-medium text-slate-700 dark:text-slate-300">Contas criadas / reusadas</span></div>
-                <span className="text-sm font-bold text-slate-600 dark:text-slate-300">{result.accounts_created} / {result.accounts_reused}</span>
-              </div>
+              {!targetAccountId && (
+                <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
+                  <div className="flex items-center gap-2"><Wallet className="w-4 h-4 text-slate-400" /><span className="text-sm font-medium text-slate-700 dark:text-slate-300">Contas criadas / reusadas</span></div>
+                  <span className="text-sm font-bold text-slate-600 dark:text-slate-300">{result.accounts_created} / {result.accounts_reused}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
                 <div className="flex items-center gap-2"><Tags className="w-4 h-4 text-slate-400" /><span className="text-sm font-medium text-slate-700 dark:text-slate-300">Categorias criadas / reusadas</span></div>
                 <span className="text-sm font-bold text-slate-600 dark:text-slate-300">{result.categories_created} / {result.categories_reused}</span>
@@ -145,7 +205,12 @@ export function MergeModal({ backupData, fileName, onClose, onSuccess }: Props) 
               )}
             </div>
 
-            <button onClick={onClose} className="w-full bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-500/30 transition">Concluir</button>
+            <div className="space-y-2">
+              <button onClick={onClose} className="w-full bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-500/30 transition">Concluir</button>
+              <button onClick={handleUndo} className="w-full bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 font-medium rounded-xl py-3 hover:bg-rose-200 dark:hover:bg-rose-900/50 transition flex items-center justify-center gap-2">
+                <RotateCcw className="w-4 h-4" /> Desfazer Sincronização
+              </button>
+            </div>
           </>
         )}
       </div>

@@ -1,0 +1,1 @@
+ALTER TABLE transactions ADD COLUMN sync_batch_id TEXT;
