@@ -1,4 +1,4 @@
-import { X, BarChart3, Sparkles, Shield, Zap, Palette, Bug, Check, Filter, RefreshCw, Database, Lock, ListFilter, TrendingUp } from 'lucide-react';
+import { X, BarChart3, Sparkles, Shield, Zap, Palette, Bug, Filter, RefreshCw, Database, Lock, ListFilter, TrendingUp } from 'lucide-react';
 
 export function AboutModal({ onClose }: { onClose: () => void }) {
   const updates = [
@@ -68,12 +68,10 @@ export function AboutModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
         
-        {/* Header */}
         <div className="flex justify-end mb-2 shrink-0">
           <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition"><X className="w-5 h-5" /></button>
         </div>
         
-        {/* Logo + Nome */}
         <div className="flex flex-col items-center text-center shrink-0">
           <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-4 rounded-2xl shadow-lg shadow-emerald-500/30 text-white mb-4">
             <BarChart3 className="w-8 h-8" />
@@ -85,13 +83,11 @@ export function AboutModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        {/* Descrição */}
         <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl text-sm text-slate-600 dark:text-slate-300 mt-4 shrink-0">
           <p>Seu gerenciador financeiro pessoal seguro e inteligente, construído na nuvem com Cloudflare.</p>
           <p className="mt-1 text-xs text-slate-500">Múltiplas contas, orçamentos, gráficos 3D, backup inteligente e PWA instalável.</p>
         </div>
 
-        {/* Changelog */}
         <div className="mt-4 flex-1 overflow-y-auto pr-1">
           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2 sticky top-0 bg-white dark:bg-slate-800 py-1">
             <Sparkles className="w-3.5 h-3.5" />
@@ -129,7 +125,6 @@ export function AboutModal({ onClose }: { onClose: () => void }) {
           </ul>
         </div>
 
-        {/* Footer */}
         <button onClick={onClose} className="w-full mt-4 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-medium rounded-xl py-3 hover:from-emerald-600 hover:to-emerald-800 transition-colors shrink-0 shadow-lg shadow-emerald-500/30">
           Entendi
         </button>
