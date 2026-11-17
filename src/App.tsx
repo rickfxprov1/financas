@@ -47,6 +47,7 @@ export default function App() {
   const [mergeData, setMergeData] = useState<any>(null);
   const [mergeFileName, setMergeFileName] = useState('');
   const [importResult, setImportResult] = useState<any>(null);
+  const [confirmDeleteTx, setConfirmDeleteTx] = useState<any>(null);
 
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [period, setPeriod] = useState('this_month');
@@ -837,7 +838,7 @@ export default function App() {
                         </span>
                         <div className="hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 rounded-xl p-1 transition-all">
                           <button onClick={() => handleEdit(t)} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
-                          <button onClick={() => { if(confirm('Excluir transação?')) deleteTx.mutate(t.id) }} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
+                          <button onClick={() => setConfirmDeleteTx(t)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </div>
                     </li>
@@ -880,6 +881,71 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
+      {confirmDeleteTx && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-[60] animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-200">
+            
+            <div className="flex flex-col items-center text-center mb-5">
+              <div className="bg-rose-100 dark:bg-rose-900/40 p-4 rounded-full mb-4 ring-4 ring-rose-50 dark:ring-rose-900/20">
+                <Trash2 className="w-8 h-8 text-rose-600 dark:text-rose-400" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white">Excluir transação?</h2>
+              <p className="text-sm text-slate-500 mt-1">Esta ação não pode ser desfeita</p>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 mb-5 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500 dark:text-slate-400">Descrição</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 truncate ml-2 max-w-[180px]">{confirmDeleteTx.description}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500 dark:text-slate-400">Valor</span>
+                <span className={`font-bold ${confirmDeleteTx.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {confirmDeleteTx.type === 'income' ? '+' : '-'} R$ {confirmDeleteTx.amount.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500 dark:text-slate-400">Data</span>
+                <span className="font-medium text-slate-700 dark:text-slate-300">
+                  {new Date(confirmDeleteTx.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+              {confirmDeleteTx.account_name && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">Conta</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{confirmDeleteTx.account_name}</span>
+                </div>
+              )}
+              {confirmDeleteTx.category_name && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">Categoria</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{confirmDeleteTx.category_name}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setConfirmDeleteTx(null)} 
+                className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium py-3 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => { 
+                  deleteTx.mutate(confirmDeleteTx.id); 
+                  setConfirmDeleteTx(null); 
+                }} 
+                className="flex-1 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-rose-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" /> Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
