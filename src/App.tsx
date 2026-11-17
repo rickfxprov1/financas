@@ -41,7 +41,6 @@ export default function App() {
   const [showAccounts, setShowAccounts] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [showCustomDates, setShowCustomDates] = useState(false);
   
   const [restoreData, setRestoreData] = useState<any>(null);
   const [restoreFileName, setRestoreFileName] = useState('');
@@ -55,7 +54,6 @@ export default function App() {
   const [chartYear, setChartYear] = useState(currentYear);
   const [editId, setEditId] = useState<number | null>(null);
 
-  // ==== DATAS PERSONALIZADAS ====
   const today = new Date().toLocaleDateString('sv-SE');
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toLocaleDateString('sv-SE');
   
@@ -123,7 +121,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false); setShowAccounts(false); setShowProfile(false); setShowCustomDates(false);
+    setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false); setShowAccounts(false); setShowProfile(false);
   }, [user]);
 
   const getGreeting = () => {
@@ -150,7 +148,6 @@ export default function App() {
     } else if (period === 'this_year') {
       return { start: `${y}-01-01`, end: `${y}-12-31`, month: `${y}-01` };
     } else if (period === 'custom') {
-      // Garante que start <= end
       const s = customStart || firstOfMonth;
       const e = customEnd || today;
       const [start, end] = s <= e ? [s, e] : [e, s];
@@ -415,11 +412,7 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* SELETOR DE PERÍODO COM PERSONALIZADO */}
-              <select value={period} onChange={e => {
-                setPeriod(e.target.value);
-                setShowCustomDates(e.target.value === 'custom');
-              }} className="bg-slate-100/80 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 rounded-xl px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors max-w-[130px] sm:max-w-none">
+              <select value={period} onChange={e => setPeriod(e.target.value)} className="bg-slate-100/80 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 rounded-xl px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors max-w-[130px] sm:max-w-none">
                 <option value="this_month">Este Mês</option>
                 <option value="last_month">Mês Passado</option>
                 <option value="this_year">Este Ano</option>
@@ -457,7 +450,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* PAINEL DE DATAS PERSONALIZADAS */}
           {period === 'custom' && (
             <div className="pb-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 animate-in slide-in-from-top-2 duration-200">
               <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2 flex-1">
