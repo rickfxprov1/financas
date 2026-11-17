@@ -5,7 +5,8 @@ import {
   Menu, Wallet, Tags, Target, FileUp, DownloadCloud, UploadCloud, Key,
   HelpCircle, Info, Download, LogOut, BarChart3, RefreshCw, TrendingUp,
   Clock, PieChart as PieChartIcon, ArrowDownLeft, ArrowUpRight, Edit2,
-  Trash2, Edit, Plus, Check, ArrowRight, PlusCircle, ChevronDown, ArrowRightLeft
+  Trash2, Edit, Plus, Check, ArrowRight, PlusCircle, ChevronDown, ArrowRightLeft,
+  Calendar, X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from './api';
@@ -40,6 +41,7 @@ export default function App() {
   const [showAccounts, setShowAccounts] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showCustomDates, setShowCustomDates] = useState(false);
   
   const [restoreData, setRestoreData] = useState<any>(null);
   const [restoreFileName, setRestoreFileName] = useState('');
@@ -52,6 +54,25 @@ export default function App() {
   const currentYear = new Date().getFullYear();
   const [chartYear, setChartYear] = useState(currentYear);
   const [editId, setEditId] = useState<number | null>(null);
+
+  // ==== DATAS PERSONALIZADAS ====
+  const today = new Date().toLocaleDateString('sv-SE');
+  const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toLocaleDateString('sv-SE');
+  
+  const [customStart, setCustomStart] = useState<string>(() => {
+    return localStorage.getItem('custom_start') || firstOfMonth;
+  });
+  const [customEnd, setCustomEnd] = useState<string>(() => {
+    return localStorage.getItem('custom_end') || today;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('custom_start', customStart);
+  }, [customStart]);
+
+  useEffect(() => {
+    localStorage.setItem('custom_end', customEnd);
+  }, [customEnd]);
 
   const [selectedAccountId, setSelectedAccountId] = useState<string>(() => {
     return localStorage.getItem('selected_account') || '';
@@ -102,7 +123,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false); setShowAccounts(false); setShowProfile(false);
+    setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false); setShowAccounts(false); setShowProfile(false); setShowCustomDates(false);
   }, [user]);
 
   const getGreeting = () => {
@@ -128,6 +149,12 @@ export default function App() {
       return { start, end, month: start.slice(0, 7) };
     } else if (period === 'this_year') {
       return { start: `${y}-01-01`, end: `${y}-12-31`, month: `${y}-01` };
+    } else if (period === 'custom') {
+      // Garante que start <= end
+      const s = customStart || firstOfMonth;
+      const e = customEnd || today;
+      const [start, end] = s <= e ? [s, e] : [e, s];
+      return { start, end, month: start.slice(0, 7) };
     }
     return { start: '1900-01-01', end: '2100-01-01', month: now.toLocaleDateString('sv-SE').slice(0, 7) };
   };
@@ -318,7 +345,6 @@ export default function App() {
 
   const selectedAccountName = accounts?.find((a: any) => String(a.id) === selectedAccountId)?.name;
 
-  // Cálculo da variação percentual (seguro contra divisão por zero)
   const openingBal = dash?.opening_balance ?? 0;
   const periodBal = dash?.period_balance ?? 0;
   const variationPerc = openingBal !== 0 
@@ -389,11 +415,16 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <select value={period} onChange={e => setPeriod(e.target.value)} className="bg-slate-100/80 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 rounded-xl px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors max-w-[100px] sm:max-w-none">
+              {/* SELETOR DE PERÍODO COM PERSONALIZADO */}
+              <select value={period} onChange={e => {
+                setPeriod(e.target.value);
+                setShowCustomDates(e.target.value === 'custom');
+              }} className="bg-slate-100/80 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 rounded-xl px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors max-w-[130px] sm:max-w-none">
                 <option value="this_month">Este Mês</option>
                 <option value="last_month">Mês Passado</option>
                 <option value="this_year">Este Ano</option>
                 <option value="all">Todo</option>
+                <option value="custom">Personalizado</option>
               </select>
 
               {accounts && accounts.length > 1 && (
@@ -425,6 +456,41 @@ export default function App() {
               <input type="file" accept=".json" className="hidden" ref={mergeInputRef} onChange={handleMergeSelect} />
             </div>
           </div>
+
+          {/* PAINEL DE DATAS PERSONALIZADAS */}
+          {period === 'custom' && (
+            <div className="pb-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 animate-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2 flex-1">
+                <Calendar className="w-4 h-4 text-emerald-500 shrink-0" />
+                <label className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">De</label>
+                <input 
+                  type="date" 
+                  value={customStart} 
+                  onChange={e => setCustomStart(e.target.value)}
+                  max={customEnd}
+                  className="bg-transparent border-none text-slate-700 dark:text-slate-200 text-sm font-semibold outline-none cursor-pointer w-full"
+                />
+              </div>
+              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2 flex-1">
+                <Calendar className="w-4 h-4 text-emerald-500 shrink-0" />
+                <label className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">Até</label>
+                <input 
+                  type="date" 
+                  value={customEnd} 
+                  onChange={e => setCustomEnd(e.target.value)}
+                  min={customStart}
+                  className="bg-transparent border-none text-slate-700 dark:text-slate-200 text-sm font-semibold outline-none cursor-pointer w-full"
+                />
+              </div>
+              <button 
+                onClick={() => setPeriod('this_month')}
+                className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-2 text-sm font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex items-center gap-1 justify-center"
+                title="Limpar"
+              >
+                <X className="w-4 h-4" /> Limpar
+              </button>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -504,7 +570,6 @@ export default function App() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           
-          {/* CARD DE SALDO — com variação percentual */}
           <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 rounded-3xl p-5 md:p-6 text-white shadow-2xl shadow-emerald-500/30 overflow-hidden flex flex-col justify-between group h-full">
             <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
