@@ -318,6 +318,14 @@ export default function App() {
 
   const selectedAccountName = accounts?.find((a: any) => String(a.id) === selectedAccountId)?.name;
 
+  // Cálculo da variação percentual (seguro contra divisão por zero)
+  const openingBal = dash?.opening_balance ?? 0;
+  const periodBal = dash?.period_balance ?? 0;
+  const variationPerc = openingBal !== 0 
+    ? (periodBal / Math.abs(openingBal)) * 100 
+    : null;
+  const hasOpeningBalance = openingBal !== 0;
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors relative overflow-x-hidden">
       
@@ -496,6 +504,7 @@ export default function App() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           
+          {/* CARD DE SALDO — com variação percentual */}
           <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 rounded-3xl p-5 md:p-6 text-white shadow-2xl shadow-emerald-500/30 overflow-hidden flex flex-col justify-between group h-full">
             <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
@@ -503,7 +512,10 @@ export default function App() {
             <div className="relative">
               <div className="flex items-center justify-between">
                 <p className="text-emerald-50 font-semibold text-sm">
-                  {selectedAccountId ? `Saldo — ${selectedAccountName || 'Conta'}` : 'Saldo Total'}
+                  {selectedAccountId 
+                    ? `Saldo em ${new Date(dates.end + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} — ${selectedAccountName}`
+                    : `Saldo em ${new Date(dates.end + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
+                  }
                 </p>
                 <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
                   <TrendingUp className="w-4 h-4" />
@@ -512,19 +524,40 @@ export default function App() {
               {isDashLoading ? (
                 <div className="h-12 mt-2 bg-white/20 rounded-lg animate-pulse w-3/4"></div>
               ) : (
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mt-2 tracking-tight break-words">R$ {dash?.balance?.toFixed(2) ?? '0,00'}</h2>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mt-2 tracking-tight break-words">
+                  R$ {dash?.closing_balance?.toFixed(2) ?? '0,00'}
+                </h2>
               )}
             </div>
             
             {!isDashLoading && (
-              <div className="relative mt-4 pt-4 border-t border-white/25">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-emerald-50 text-xs font-medium">Resultado até Hoje</p>
-                  <span className="text-[9px] uppercase tracking-wider text-emerald-200/70 font-bold" title="Não inclui lançamentos futuros">📅</span>
+              <div className="relative mt-4 pt-4 border-t border-white/25 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-emerald-50/80">Saldo Inicial ({new Date(dates.start + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })})</span>
+                  <span className="font-semibold text-emerald-100">R$ {dash?.opening_balance?.toFixed(2) ?? '0,00'}</span>
                 </div>
-                <p className={`text-lg font-bold ${dash?.period_balance >= 0 ? 'text-emerald-200' : 'text-rose-200'}`}>
-                  {dash?.period_balance >= 0 ? '▲ +' : '▼ '} R$ {Math.abs(dash?.period_balance || 0).toFixed(2)}
-                </p>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-emerald-50/80">Variação no Período</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`font-bold ${periodBal >= 0 ? 'text-emerald-200' : 'text-rose-200'}`}>
+                      {periodBal >= 0 ? '▲ +' : '▼ '} R$ {Math.abs(periodBal).toFixed(2)}
+                    </span>
+                    {hasOpeningBalance && variationPerc !== null && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        periodBal >= 0 
+                          ? 'bg-emerald-400/30 text-emerald-100' 
+                          : 'bg-rose-400/30 text-rose-100'
+                      }`}>
+                        {variationPerc >= 0 ? '+' : ''}{variationPerc.toFixed(1)}%
+                      </span>
+                    )}
+                    {!hasOpeningBalance && periodBal !== 0 && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/20 text-emerald-100">
+                        Novo
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
