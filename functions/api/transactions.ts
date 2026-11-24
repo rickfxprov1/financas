@@ -25,7 +25,7 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
     LEFT JOIN categories c ON c.id = t.category_id
     LEFT JOIN accounts a ON a.id = t.account_id
     WHERE t.user_id = ? AND t.date >= ? AND t.date <= ?${accFilter}${paidFilter}
-    ORDER BY t.date DESC, t.id DESC
+    ORDER BY ${paidParam === '0' ? 't.date ASC, t.id ASC' : 't.date DESC, t.id DESC'}
     LIMIT ? OFFSET ?
   `).bind(userId, start, end, ...accParam, limit, offset).all();
   

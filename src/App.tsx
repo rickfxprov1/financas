@@ -199,6 +199,12 @@ export default function App() {
 
   const txns = txnsData?.pages.flat() || [];
 
+  const { data: pendingBills } = useQuery({
+    queryKey: ['transactions', 'pending-card', filterQuery],
+    queryFn: () => api.list(`${filterQuery}&paid=0&limit=4`),
+    enabled: !!user,
+  });
+
   const yearQuery = `?start=${chartYear}-01-01&end=${chartYear}-12-31&month=${chartYear}-01${accountParam}`;
   const { data: yearData, isFetching: isYearLoading } = useQuery({
     queryKey: ['yearly', chartYear, selectedAccountId],
@@ -686,12 +692,33 @@ export default function App() {
                     <span className="font-bold text-rose-500 tabular-nums">{brl(bills.overdue_total)}</span>
                   </div>
                 )}
+                {pendingBills && pendingBills.length > 0 && (
+                  <ul className="pt-1 space-y-1.5">
+                    {pendingBills.map((t: any) => (
+                      <li key={t.id} className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{t.description}</p>
+                          <p className={`text-[10px] font-semibold ${t.date < today ? 'text-rose-500' : 'text-slate-400'}`}>
+                            {t.date < today ? 'Venceu ' : 'Vence '}{new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} • {brl(t.amount)}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => togglePaid.mutate({ id: t.id, paid: true })}
+                          disabled={togglePaid.isPending}
+                          className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-white bg-emerald-500 hover:bg-emerald-600 px-2.5 py-1.5 rounded-lg transition active:scale-95 disabled:opacity-50"
+                        >
+                          <Check className="w-3.5 h-3.5" strokeWidth={3} /> Pagar
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {(bills?.pending_count ?? 0) > 0 && (
                   <button
                     onClick={() => { setPaidFilter('pending'); listRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
                     className="w-full mt-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 py-2 rounded-xl transition"
                   >
-                    Ver pendentes
+                    Ver todas as pendentes
                   </button>
                 )}
               </div>
@@ -952,17 +979,27 @@ export default function App() {
                         <span className={`font-bold text-sm sm:text-base whitespace-nowrap tabular-nums ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
                           {t.type === 'income' ? '+' : '-'} {brl(t.amount)}
                         </span>
-                        {t.type === 'expense' && (
+                        {t.type === 'expense' && (t.paid ? (
                           <button
-                            onClick={() => togglePaid.mutate({ id: t.id, paid: !t.paid })}
+                            onClick={() => togglePaid.mutate({ id: t.id, paid: false })}
                             disabled={togglePaid.isPending}
-                            title={t.paid ? 'Marcar como pendente' : 'Marcar como pago'}
-                            aria-label={t.paid ? 'Marcar como pendente' : 'Marcar como pago'}
-                            className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 transition-all active:scale-90 disabled:opacity-50 ${t.paid ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-600 text-transparent hover:border-emerald-400 hover:text-emerald-400'}`}
+                            title="Desfazer pagamento"
+                            aria-label="Desfazer pagamento"
+                            className="w-8 h-8 rounded-full bg-emerald-500 border-2 border-emerald-500 text-white flex items-center justify-center shrink-0 transition-all active:scale-90 hover:bg-emerald-600 disabled:opacity-50"
                           >
                             <Check className="w-4 h-4" strokeWidth={3} />
                           </button>
-                        )}
+                        ) : (
+                          <button
+                            onClick={() => togglePaid.mutate({ id: t.id, paid: true })}
+                            disabled={togglePaid.isPending}
+                            title="Marcar como pago"
+                            aria-label="Marcar como pago"
+                            className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 px-3 py-2 rounded-xl shadow-sm shadow-emerald-500/30 transition-all active:scale-95 disabled:opacity-50"
+                          >
+                            <Check className="w-4 h-4" strokeWidth={3} /> <span>Pagar</span>
+                          </button>
+                        ))}
                         <div className="flex sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 items-center gap-1 bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 rounded-xl p-1 transition-all">
                           <button onClick={() => handleEdit(t)} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
                           <button onClick={() => setConfirmDeleteTx(t)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
