@@ -980,27 +980,29 @@ export default function App() {
                   </h3>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{txns.length} lançamentos</span>
                 </div>
-                <div className="inline-flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1">
-                  {([['all', 'Todos'], ['paid', 'Pagas'], ['pending', 'Pendentes']] as const).map(([val, label]) => (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="inline-flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1">
+                    {([['all', 'Todos'], ['paid', 'Pagas'], ['pending', 'Pendentes']] as const).map(([val, label]) => (
+                      <button
+                        key={val}
+                        onClick={() => setPaidFilter(val)}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${paidFilter === val ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {expenseIds.length > 0 && !selectMode && (
                     <button
-                      key={val}
-                      onClick={() => setPaidFilter(val)}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${paidFilter === val ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                      onClick={() => setSelectMode(true)}
+                      className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 px-3.5 py-2 rounded-xl transition active:scale-95 whitespace-nowrap"
                     >
-                      {label}
+                      Marcar várias
                     </button>
-                  ))}
+                  )}
                 </div>
-                {expenseIds.length > 0 && !selectMode && (
-                  <button
-                    onClick={() => setSelectMode(true)}
-                    className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 px-3 py-1.5 rounded-lg transition active:scale-95"
-                  >
-                    Marcar várias
-                  </button>
-                )}
                 {selectMode && (
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <div className="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl px-3 py-2.5">
                     <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer select-none mr-1">
                       <input
                         type="checkbox"
@@ -1029,7 +1031,7 @@ export default function App() {
                         </button>
                       </>
                     )}
-                    <button onClick={() => { setSelected([]); setSelectMode(false); }} className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 px-2 py-1.5">
+                    <button onClick={() => { setSelected([]); setSelectMode(false); }} className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 px-2 py-1.5 ml-auto">
                       Cancelar
                     </button>
                   </div>
@@ -1073,10 +1075,11 @@ export default function App() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`font-bold text-sm sm:text-base whitespace-nowrap tabular-nums ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        <span className={`font-bold text-sm sm:text-base whitespace-nowrap tabular-nums text-right min-w-[92px] sm:min-w-[110px] ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
                           {t.type === 'income' ? '+' : '-'} {brl(t.amount)}
                         </span>
+                        <div className="w-[84px] flex justify-end shrink-0">
                         {t.type === 'expense' && (t.paid ? (
                           <button
                             onClick={() => togglePaid.mutate({ id: t.id, paid: false })}
@@ -1093,11 +1096,12 @@ export default function App() {
                             disabled={togglePaid.isPending}
                             title="Marcar como pago"
                             aria-label="Marcar como pago"
-                            className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 px-3 py-2 rounded-xl shadow-sm shadow-emerald-500/30 transition-all active:scale-95 disabled:opacity-50"
+                            className="shrink-0 h-8 w-[84px] flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-sm shadow-emerald-500/30 transition-all active:scale-95 disabled:opacity-50"
                           >
                             <Check className="w-4 h-4" strokeWidth={3} /> <span>Pagar</span>
                           </button>
                         ))}
+                        </div>
                         <div className="flex sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 items-center gap-1 bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 rounded-xl p-1 transition-all">
                           <button onClick={() => handleEdit(t)} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
                           <button onClick={() => setConfirmDeleteTx(t)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
