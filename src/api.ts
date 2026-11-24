@@ -15,6 +15,7 @@ export const api = {
   create:   (tx: any) => fetch('/api/transactions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tx) }).then(handleResponse),
   update:   (id: number, tx: any) => fetch(`/api/transactions/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tx) }).then(handleResponse),
   setPaid:  (id: number, paid: boolean) => fetch(`/api/transactions/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paid }) }).then(handleResponse),
+  setPaidBulk: (ids: number[], paid: boolean) => fetch('/api/transactions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, paid }) }).then(handleResponse),
   remove:   (id: number) => fetch(`/api/transactions/${id}`, { method: 'DELETE' }).then(handleResponse),
   dashboard:(filter: string = '') => fetch(`/api/dashboard${filter}`).then(handleResponse),
   categories:() => fetch('/api/categories').then(handleResponse),

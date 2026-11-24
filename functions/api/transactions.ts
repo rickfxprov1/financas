@@ -66,3 +66,26 @@ export const onRequestPost: PagesFunction<{ DB: D1Database }> = async ({ request
   
   return Response.json({ id: r.meta.last_row_id }, { status: 201 });
 };
+
+// Marca várias despesas como pagas / pendentes de uma vez
+export const onRequestPatch: PagesFunction<{ DB: D1Database }> = async ({ request, env, data }) => {
+  const userId = (data as any).userId;
+  const b = await request.json<any>();
+  const ids: number[] = Array.isArray(b.ids)
+    ? [...new Set<number>(b.ids.map(Number).filter((n: number) => Number.isInteger(n) && n > 0))]
+    : [];
+  if (ids.length === 0) return Response.json({ error: 'Nenhuma transação selecionada' }, { status: 400 });
+  if (ids.length > 500) return Response.json({ error: 'Selecione no máximo 500 lançamentos por vez' }, { status: 400 });
+
+  const paid = b.paid ? 1 : 0;
+  let updated = 0;
+  for (let i = 0; i < ids.length; i += 50) {
+    const results = await env.DB.batch(
+      ids.slice(i, i + 50).map(id =>
+        env.DB.prepare("UPDATE transactions SET paid = ? WHERE id = ? AND user_id = ? AND type = 'expense'").bind(paid, id, userId)
+      )
+    );
+    updated += results.reduce((acc, r) => acc + (r.meta.changes || 0), 0);
+  }
+  return Response.json({ ok: true, updated });
+};

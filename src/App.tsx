@@ -96,6 +96,7 @@ export default function App() {
   
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE'), paid: false });
   const [paidFilter, setPaidFilter] = useState<'all' | 'paid' | 'pending'>('all');
+  const [selected, setSelected] = useState<number[]>([]);
   
   const [time, setTime] = useState(new Date());
 
@@ -212,6 +213,12 @@ export default function App() {
   });
 
   const txns = txnsData?.pages.flat() || [];
+  const expenseIds: number[] = txns.filter((t: any) => t.type === 'expense').map((t: any) => t.id);
+  const allSelected = expenseIds.length > 0 && expenseIds.every(id => selected.includes(id));
+
+  useEffect(() => { setSelected([]); }, [filterQuery, paidFilter]);
+
+  const toggleSelected = (id: number) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
   const { data: pendingBills } = useQuery({
     queryKey: ['transactions', 'pending-card', filterQuery],
@@ -265,6 +272,20 @@ export default function App() {
       qc.invalidateQueries({ queryKey: ['dashboard'] });
       qc.invalidateQueries({ queryKey: ['transactions'] });
       toast.success(vars.paid ? 'Marcado como pago!' : 'Marcado como pendente');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Erro ao atualizar');
+    }
+  });
+
+  const bulkPaid = useMutation({
+    mutationFn: ({ ids, paid }: { ids: number[]; paid: boolean }) => api.setPaidBulk(ids, paid),
+    onSuccess: (res: any, vars) => {
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      setSelected([]);
+      const n = res?.updated ?? vars.ids.length;
+      toast.success(vars.paid ? `${n} marcada(s) como paga(s)!` : `${n} marcada(s) como pendente(s)`);
     },
     onError: (err: any) => {
       toast.error(err.message || 'Erro ao atualizar');
@@ -968,6 +989,41 @@ export default function App() {
                     </button>
                   ))}
                 </div>
+                {expenseIds.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer select-none mr-1">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-emerald-500 cursor-pointer"
+                        checked={allSelected}
+                        onChange={() => setSelected(allSelected ? [] : expenseIds)}
+                      />
+                      Selecionar todas
+                    </label>
+                    {selected.length > 0 && (
+                      <>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{selected.length} selecionada(s)</span>
+                        <button
+                          onClick={() => bulkPaid.mutate({ ids: selected, paid: true })}
+                          disabled={bulkPaid.isPending}
+                          className="text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 rounded-lg transition active:scale-95 disabled:opacity-50"
+                        >
+                          Marcar como pagas
+                        </button>
+                        <button
+                          onClick={() => bulkPaid.mutate({ ids: selected, paid: false })}
+                          disabled={bulkPaid.isPending}
+                          className="text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1.5 rounded-lg transition active:scale-95 disabled:opacity-50"
+                        >
+                          Marcar como pendentes
+                        </button>
+                        <button onClick={() => setSelected([])} className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 px-2 py-1.5">
+                          Limpar
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
               
               {isTxnsLoading ? (
@@ -977,8 +1033,19 @@ export default function App() {
               ) : (
                 <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                   {txns.map((t: any) => (
-                    <li key={t.id} className="p-4 sm:px-6 hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors flex items-center justify-between group">
+                    <li key={t.id} className={`p-4 sm:px-6 hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors flex items-center justify-between group ${selected.includes(t.id) ? 'bg-emerald-50/70 dark:bg-emerald-900/10' : ''}`}>
                       <div className="flex items-center gap-3 sm:gap-4">
+                        {t.type === 'expense' ? (
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 accent-emerald-500 cursor-pointer shrink-0"
+                            checked={selected.includes(t.id)}
+                            onChange={() => toggleSelected(t.id)}
+                            aria-label={`Selecionar ${t.description}`}
+                          />
+                        ) : (
+                          <span className="w-4 shrink-0"></span>
+                        )}
                         <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm" style={{ backgroundColor: t.category_color ? `${t.category_color}20` : (darkMode ? '#1e293b' : '#f1f5f9'), color: t.category_color || (darkMode ? '#cbd5e1' : '#64748b') }}>
                           {t.type === 'income' ? <ArrowDownLeft className="w-4 h-4 sm:w-5 sm:h-5" /> : <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />}
                         </div>
