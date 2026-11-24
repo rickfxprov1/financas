@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, Legend } from 'recharts';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ComposedChart, Line, Legend, ReferenceLine } from 'recharts';
 import {
   Menu, Wallet, Tags, Target, FileUp, DownloadCloud, UploadCloud, Key,
   HelpCircle, Info, Download, LogOut, BarChart3, RefreshCw, TrendingUp,
@@ -25,6 +25,16 @@ import { ImportResultModal } from './ImportResultModal';
 import { MergeModal } from './MergeModal';
 
 const brl = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+const PIE_PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#8b5cf6', '#84cc16'];
+
+// Valores compactos no eixo Y (ex.: -3k, 2,5k)
+const compact = (v: number) => {
+  const abs = Math.abs(v);
+  if (abs < 1000) return String(v);
+  const k = abs / 1000;
+  return `${v < 0 ? '-' : ''}${k.toFixed(k % 1 === 0 ? 0 : 1).replace('.', ',')}k`;
+};
 
 export default function App() {
   const { user, loading, logout } = useAuth();
@@ -371,6 +381,11 @@ export default function App() {
     ? (periodBal / Math.abs(openingBal)) * 100 
     : null;
   const hasOpeningBalance = openingBal !== 0;
+
+  const pieData: any[] = (dash?.byCategory ?? []).map((c: any, i: number, arr: any[]) => {
+    const colorRepeats = arr.filter((x: any) => x.color === c.color).length > 1;
+    return { ...c, fill: colorRepeats ? PIE_PALETTE[i % PIE_PALETTE.length] : c.color };
+  });
 
   const bills = dash?.bills;
   const billsTotal = (bills?.paid_total ?? 0) + (bills?.pending_total ?? 0);
@@ -738,17 +753,17 @@ export default function App() {
                 <>
                 <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
-                    <Pie data={dash.byCategory} dataKey="total" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={4} cornerRadius={8}>
-                      {dash.byCategory.map((c: any) => <Cell key={c.name} fill={c.color} />)}
+                    <Pie data={pieData} dataKey="total" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={4} cornerRadius={8}>
+                      {pieData.map((c: any) => <Cell key={c.name} fill={c.fill} />)}
                     </Pie>
                     <Tooltip contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} formatter={(v: any) => brl(Number(v))} />
                   </PieChart>
                 </ResponsiveContainer>
                 <ul className="w-full mt-3 space-y-1.5">
-                  {dash.byCategory.slice(0, 5).map((c: any) => (
+                  {pieData.slice(0, 5).map((c: any) => (
                     <li key={c.name} className="flex items-center justify-between text-xs">
                       <span className="flex items-center gap-2 text-slate-600 dark:text-slate-300 font-medium min-w-0">
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }}></span>
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.fill }}></span>
                         <span className="truncate">{c.name}</span>
                       </span>
                       <span className="font-bold text-slate-700 dark:text-slate-200 tabular-nums ml-2 whitespace-nowrap">{brl(c.total)}</span>
@@ -777,7 +792,7 @@ export default function App() {
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={dash?.monthly ?? []} barGap={6}>
                 <XAxis dataKey="month" tickFormatter={(m: string) => { const [y, mo] = String(m).split('-'); return mo ? `${monthNames[Number(mo) - 1]}/${y.slice(2)}` : m; }} axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : String(v)} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} tickFormatter={compact} />
                 <Tooltip cursor={{ fill: darkMode ? '#1e293b' : '#f1f5f9' }} contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px' }} formatter={(v: any) => brl(Number(v))} />
                 <Legend wrapperStyle={{ paddingTop: '8px' }} iconType="circle" />
                 <Bar dataKey="income" fill="#10b981" name="Receita" radius={[6, 6, 0, 0]} maxBarSize={56} />
@@ -826,8 +841,9 @@ export default function App() {
                 </defs>
                 
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12, fontWeight: 500 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} />
-                <Tooltip cursor={{ fill: darkMode ? '#1e293b' : '#f1f5f9' }} contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', color: darkMode ? '#fff' : '#000' }} formatter={(value: any) => typeof value === 'number' ? brl(value) : value} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} tickFormatter={compact} />
+                <ReferenceLine y={0} stroke={darkMode ? '#475569' : '#cbd5e1'} strokeDasharray="4 4" />
+                <Tooltip cursor={{ fill: darkMode ? '#1e293b' : '#f1f5f9' }} contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', color: darkMode ? '#fff' : '#000' }} itemStyle={{ color: darkMode ? '#e2e8f0' : '#334155' }} labelStyle={{ color: darkMode ? '#fff' : '#0f172a', fontWeight: 700 }} formatter={(value: any) => typeof value === 'number' ? brl(value) : value} />
                 <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
                 <Bar dataKey="income" fill="url(#income3D)" name="Receita" radius={[6, 6, 0, 0]} filter="url(#barShadow)" barSize={20} />
                 <Bar dataKey="expense" fill="url(#expense3D)" name="Despesa" radius={[6, 6, 0, 0]} filter="url(#barShadow)" barSize={20} />
