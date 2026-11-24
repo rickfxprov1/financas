@@ -3,6 +3,16 @@ import { X, BarChart3, Sparkles, Shield, Zap, Palette, Bug, Filter, RefreshCw, D
 export function AboutModal({ onClose }: { onClose: () => void }) {
   const newFeatures = [
     { 
+      Icon: Calendar, 
+      title: 'Parcelas e Contas Fixas', 
+      desc: 'No formulário, use "Repetir por (meses)" para criar de uma vez todas as parcelas, uma por mês, já como pendentes.' 
+    },
+    { 
+      Icon: Filter, 
+      title: 'Alertas e Busca', 
+      desc: 'Aviso no topo com contas vencidas, que vencem hoje e nos próximos 7 dias. No histórico, busque por descrição e filtre por categoria e tipo.' 
+    },
+    { 
       Icon: BarChart3, 
       title: 'Relatórios', 
       desc: 'Nova opção no menu com o resumo do período: receitas, despesas, resultado, contas pagas e pendentes, categorias, maiores despesas e mês a mês. Exporta em CSV.' 

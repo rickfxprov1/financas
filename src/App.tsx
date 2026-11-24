@@ -96,9 +96,13 @@ export default function App() {
     localStorage.setItem('selected_account', selectedAccountId);
   }, [selectedAccountId]);
   
-  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE'), paid: false });
+  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE'), paid: false, repeat: '' });
   const [paidFilter, setPaidFilter] = useState<'all' | 'paid' | 'pending'>('all');
   const [selected, setSelected] = useState<number[]>([]);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterType, setFilterType] = useState<'' | 'expense' | 'income'>('');
   const [selectMode, setSelectMode] = useState(false);
   
   const [time, setTime] = useState(new Date());
@@ -206,8 +210,8 @@ export default function App() {
     isFetchingNextPage,
     isFetching: isTxnsLoading 
   } = useInfiniteQuery({
-    queryKey: ['transactions', filterQuery, paidFilter],
-    queryFn: ({ pageParam = 0 }) => api.list(`${filterQuery}${paidFilter === 'paid' ? '&paid=1' : paidFilter === 'pending' ? '&paid=0' : ''}&limit=30&offset=${pageParam}`),
+    queryKey: ['transactions', filterQuery, paidFilter, debouncedSearch, filterCategory, filterType],
+    queryFn: ({ pageParam = 0 }) => api.list(`${filterQuery}${paidFilter === 'paid' ? '&paid=1' : paidFilter === 'pending' ? '&paid=0' : ''}${debouncedSearch ? `&q=${encodeURIComponent(debouncedSearch)}` : ''}${filterCategory ? `&category_id=${filterCategory}` : ''}${filterType ? `&type=${filterType}` : ''}&limit=30&offset=${pageParam}`),
     getNextPageParam: (lastPage: any[], allPages: any[][]) => {
       return lastPage.length === 30 ? allPages.length * 30 : undefined;
     },
@@ -219,7 +223,12 @@ export default function App() {
   const expenseIds: number[] = txns.filter((t: any) => t.type === 'expense').map((t: any) => t.id);
   const allSelected = expenseIds.length > 0 && expenseIds.every(id => selected.includes(id));
 
-  useEffect(() => { setSelected([]); }, [filterQuery, paidFilter]);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => { setSelected([]); }, [filterQuery, paidFilter, debouncedSearch, filterCategory, filterType]);
 
   const toggleSelected = (id: number) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
@@ -256,13 +265,13 @@ export default function App() {
 
   const saveTx = useMutation({
     mutationFn: (data: any) => editId ? api.update(editId, data) : api.create(data),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ['dashboard'] });
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['yearly'] });
       setEditId(null);
-      setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: selectedAccountId || '', date: new Date().toLocaleDateString('sv-SE'), paid: false });
-      toast.success(editId ? 'Atualizado!' : 'Lançado!');
+      setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: selectedAccountId || '', date: new Date().toLocaleDateString('sv-SE'), paid: false, repeat: '' });
+      toast.success(editId ? 'Atualizado!' : res?.created > 1 ? `${res.created} parcelas lançadas!` : 'Lançado!');
     },
     onError: (err: any) => {
       toast.error(err.message || 'Erro ao salvar transação');
@@ -316,12 +325,12 @@ export default function App() {
     e.preventDefault();
     if (!form.description || !form.amount || !form.date) return;
     if (!form.account_id) return toast.error('Selecione uma conta para o lançamento.');
-    saveTx.mutate({ ...form, paid: form.type === 'expense' ? form.paid : true, amount: Number(form.amount), account_id: Number(form.account_id), category_id: Number(form.category_id) || null });
+    saveTx.mutate({ ...form, repeat: editId ? undefined : Math.min(Math.max(parseInt(form.repeat) || 1, 1), 60), paid: form.type === 'expense' ? form.paid : true, amount: Number(form.amount), account_id: Number(form.account_id), category_id: Number(form.category_id) || null });
   };
 
   const handleEdit = (t: any) => {
     setEditId(t.id);
-    setForm({ description: t.description, amount: t.amount.toString(), type: t.type, category_id: t.category_id || '', account_id: t.account_id || '', date: t.date, paid: !!t.paid });
+    setForm({ description: t.description, amount: t.amount.toString(), type: t.type, category_id: t.category_id || '', account_id: t.account_id || '', date: t.date, paid: !!t.paid, repeat: '' });
     formRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -420,6 +429,8 @@ export default function App() {
   });
 
   const bills = dash?.bills;
+  const alerts = dash?.alerts;
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
   const billsTotal = (bills?.paid_total ?? 0) + (bills?.pending_total ?? 0);
   const billsCount = (bills?.paid_count ?? 0) + (bills?.pending_count ?? 0);
   const billsPerc = billsTotal > 0 ? Math.min(((bills?.paid_total ?? 0) / billsTotal) * 100, 100) : 0;
@@ -644,6 +655,28 @@ export default function App() {
             </span>
           </div>
         </div>
+
+        {alerts && (alerts.overdue_count > 0 || alerts.today_count > 0 || alerts.week_count > 0) && (
+          <div className={`rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${alerts.overdue_count > 0 ? 'bg-rose-50 dark:bg-rose-900/10 border-rose-200 dark:border-rose-900/40' : 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/40'}`}>
+            <div className="space-y-0.5 text-sm font-semibold">
+              {alerts.overdue_count > 0 && (
+                <p className="text-rose-600 dark:text-rose-400">{plural(alerts.overdue_count, 'conta vencida', 'contas vencidas')} • {brl(alerts.overdue_total)}</p>
+              )}
+              {alerts.today_count > 0 && (
+                <p className="text-amber-600 dark:text-amber-400">{plural(alerts.today_count, 'conta vence', 'contas vencem')} hoje • {brl(alerts.today_total)}</p>
+              )}
+              {alerts.week_count > 0 && (
+                <p className="text-slate-600 dark:text-slate-300">{plural(alerts.week_count, 'conta vence', 'contas vencem')} nos próximos 7 dias • {brl(alerts.week_total)}</p>
+              )}
+            </div>
+            <button
+              onClick={() => { setPeriod('all'); setPaidFilter('pending'); setTimeout(() => listRef.current?.scrollIntoView({ behavior: 'smooth' }), 100); }}
+              className="shrink-0 text-xs font-bold text-white bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 px-4 py-2 rounded-xl transition active:scale-95"
+            >
+              Ver pendentes
+            </button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
           
@@ -959,6 +992,15 @@ export default function App() {
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Data</label>
                   <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/50 text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all" required />
                 </div>
+                {!editId && (
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Repetir por (meses)</label>
+                    <input type="number" min="1" max="60" step="1" placeholder="1 = só este lançamento" value={form.repeat} onChange={e => setForm({...form, repeat: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/50 text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all" />
+                    {parseInt(form.repeat) > 1 && (
+                      <p className="text-[11px] text-slate-500 mt-1.5">Cria {Math.min(parseInt(form.repeat), 60)} lançamentos, um por mês, como "{form.description || 'Descrição'} (1/{Math.min(parseInt(form.repeat), 60)})". Só o primeiro segue a opção de pago.</p>
+                    )}
+                  </div>
+                )}
                 {form.type === 'expense' && (
                   <button type="button" onClick={() => setForm({...form, paid: !form.paid})} className="w-full flex items-center justify-between gap-3 border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/50 text-sm font-medium transition-all hover:border-emerald-400" role="switch" aria-checked={form.paid}>
                     <span className="text-slate-700 dark:text-slate-200">Conta já paga</span>
@@ -972,7 +1014,7 @@ export default function App() {
                   {editId ? 'Salvar' : 'Lançar'}
                 </button>
                 {editId && (
-                  <button type="button" onClick={() => { setEditId(null); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: selectedAccountId || '', date: new Date().toLocaleDateString('sv-SE'), paid: false }); }} className="w-full text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 mt-1">Cancelar Edição</button>
+                  <button type="button" onClick={() => { setEditId(null); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: selectedAccountId || '', date: new Date().toLocaleDateString('sv-SE'), paid: false, repeat: '' }); }} className="w-full text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 mt-1">Cancelar Edição</button>
                 )}
               </form>
             </div>
@@ -1005,6 +1047,29 @@ export default function App() {
                       className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 px-3.5 py-2 rounded-xl transition active:scale-95 whitespace-nowrap"
                     >
                       Marcar várias
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Buscar descrição..."
+                    className="flex-1 min-w-[160px] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800/50 text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                  />
+                  <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold outline-none cursor-pointer">
+                    <option value="">Todas as categorias</option>
+                    {cats?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <select value={filterType} onChange={e => setFilterType(e.target.value as '' | 'expense' | 'income')} className="border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold outline-none cursor-pointer">
+                    <option value="">Receitas e despesas</option>
+                    <option value="expense">Só despesas</option>
+                    <option value="income">Só receitas</option>
+                  </select>
+                  {(search || filterCategory || filterType) && (
+                    <button onClick={() => { setSearch(''); setFilterCategory(''); setFilterType(''); }} className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 px-2 py-2">
+                      Limpar filtros
                     </button>
                   )}
                 </div>
@@ -1123,10 +1188,12 @@ export default function App() {
                         <Wallet className="w-10 h-10 text-emerald-500 dark:text-emerald-400" />
                       </div>
                       <h4 className="text-lg font-bold text-slate-700 dark:text-slate-300">
-                        {selectedAccountId ? 'Nenhuma transação nesta conta' : 'Sua carteira está vazia'}
+                        {(search || filterCategory || filterType || paidFilter !== 'all') ? 'Nenhum lançamento encontrado' : selectedAccountId ? 'Nenhuma transação nesta conta' : 'Sua carteira está vazia'}
                       </h4>
                       <p className="text-sm text-slate-500 max-w-xs mt-1.5">
-                        {selectedAccountId 
+                        {(search || filterCategory || filterType || paidFilter !== 'all')
+                          ? 'Tente mudar a busca ou os filtros do histórico.'
+                          : selectedAccountId 
                           ? 'Esta conta não tem lançamentos no período selecionado.'
                           : 'Registre sua primeira despesa ou receita para começar a acompanhar suas finanças.'}
                       </p>

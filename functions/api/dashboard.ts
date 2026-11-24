@@ -26,8 +26,9 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
   const initialBalanceParam = accountId ? [accountId, userId] : [userId];
 
   const todayBR = brazilDate.toISOString().slice(0, 10);
+  const weekBR = new Date(brazilDate.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-  const [saldoInicial, saldoFinal, periodResult, mensal, porCategoria, recentes, budgets, bills] = await Promise.all([
+  const [saldoInicial, saldoFinal, periodResult, mensal, porCategoria, recentes, budgets, bills, alerts] = await Promise.all([
     // SALDO INICIAL: initial_balance + transações ANTES do início do período
     env.DB.prepare(`
       SELECT ${initialBalanceQuery} +
@@ -102,7 +103,20 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
         COALESCE(SUM(CASE WHEN paid = 0 AND date < ? THEN 1 ELSE 0 END), 0) AS overdue_count
       FROM transactions
       WHERE user_id = ? AND type = 'expense' AND date >= ? AND date <= ?${accFilter}
-    `).bind(todayBR, todayBR, userId, start, end, ...accParam).first()
+    `).bind(todayBR, todayBR, userId, start, end, ...accParam).first(),
+
+    // ALERTAS (independem do período): despesas pendentes vencidas, de hoje e dos próximos 7 dias
+    env.DB.prepare(`
+      SELECT
+        COALESCE(SUM(CASE WHEN date < ? THEN 1 ELSE 0 END), 0) AS overdue_count,
+        COALESCE(SUM(CASE WHEN date < ? THEN amount ELSE 0 END), 0) AS overdue_total,
+        COALESCE(SUM(CASE WHEN date = ? THEN 1 ELSE 0 END), 0) AS today_count,
+        COALESCE(SUM(CASE WHEN date = ? THEN amount ELSE 0 END), 0) AS today_total,
+        COALESCE(SUM(CASE WHEN date > ? AND date <= ? THEN 1 ELSE 0 END), 0) AS week_count,
+        COALESCE(SUM(CASE WHEN date > ? AND date <= ? THEN amount ELSE 0 END), 0) AS week_total
+      FROM transactions
+      WHERE user_id = ? AND type = 'expense' AND paid = 0${accFilter}
+    `).bind(todayBR, todayBR, todayBR, todayBR, todayBR, weekBR, todayBR, weekBR, userId, ...accParam).first()
   ]);
 
   return Response.json({
@@ -114,6 +128,7 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
     byCategory: porCategoria.results,
     recent: recentes.results,
     budgets: budgets.results,
+    alerts: alerts ?? { overdue_count: 0, overdue_total: 0, today_count: 0, today_total: 0, week_count: 0, week_total: 0 },
     bills: bills ?? { paid_total: 0, paid_count: 0, pending_total: 0, pending_count: 0, overdue_total: 0, overdue_count: 0 }
   });
 };
