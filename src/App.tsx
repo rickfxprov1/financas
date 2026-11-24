@@ -160,6 +160,10 @@ export default function App() {
       const start = new Date(y, m - 1, 1).toLocaleDateString('sv-SE');
       const end = new Date(y, m, 0).toLocaleDateString('sv-SE');
       return { start, end, month: start.slice(0, 7) };
+    } else if (period === 'next_month') {
+      const start = new Date(y, m + 1, 1).toLocaleDateString('sv-SE');
+      const end = new Date(y, m + 2, 0).toLocaleDateString('sv-SE');
+      return { start, end, month: start.slice(0, 7) };
     } else if (period === 'this_year') {
       return { start: `${y}-01-01`, end: `${y}-12-31`, month: `${y}-01` };
     } else if (period === 'custom') {
@@ -465,6 +469,7 @@ export default function App() {
               <select value={period} onChange={e => setPeriod(e.target.value)} className="bg-slate-100/80 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 rounded-xl px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors max-w-[130px] sm:max-w-none">
                 <option value="this_month">Este Mês</option>
                 <option value="last_month">Mês Passado</option>
+                <option value="next_month">Próximo Mês</option>
                 <option value="this_year">Este Ano</option>
                 <option value="all">Todo</option>
                 <option value="custom">Personalizado</option>
