@@ -6,7 +6,7 @@ import {
   HelpCircle, Info, Download, LogOut, BarChart3, RefreshCw, TrendingUp,
   Clock, PieChart as PieChartIcon, ArrowDownLeft, ArrowUpRight, Edit2,
   Trash2, Edit, Plus, Check, ArrowRight, PlusCircle, ChevronDown, ArrowRightLeft,
-  Calendar, X
+  Calendar, X, Receipt
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from './api';
@@ -24,6 +24,8 @@ import { RestoreModal } from './RestoreModal';
 import { ImportResultModal } from './ImportResultModal';
 import { MergeModal } from './MergeModal';
 
+const brl = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
 export default function App() {
   const { user, loading, logout } = useAuth();
   const qc = useQueryClient();
@@ -31,6 +33,7 @@ export default function App() {
   const mergeInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const [showCats, setShowCats] = useState(false);
   const [showPass, setShowPass] = useState(false);
@@ -81,7 +84,8 @@ export default function App() {
     localStorage.setItem('selected_account', selectedAccountId);
   }, [selectedAccountId]);
   
-  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE') });
+  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE'), paid: false });
+  const [paidFilter, setPaidFilter] = useState<'all' | 'paid' | 'pending'>('all');
   
   const [time, setTime] = useState(new Date());
 
@@ -184,8 +188,8 @@ export default function App() {
     isFetchingNextPage,
     isFetching: isTxnsLoading 
   } = useInfiniteQuery({
-    queryKey: ['transactions', filterQuery],
-    queryFn: ({ pageParam = 0 }) => api.list(`${filterQuery}&limit=30&offset=${pageParam}`),
+    queryKey: ['transactions', filterQuery, paidFilter],
+    queryFn: ({ pageParam = 0 }) => api.list(`${filterQuery}${paidFilter === 'paid' ? '&paid=1' : paidFilter === 'pending' ? '&paid=0' : ''}&limit=30&offset=${pageParam}`),
     getNextPageParam: (lastPage: any[], allPages: any[][]) => {
       return lastPage.length === 30 ? allPages.length * 30 : undefined;
     },
@@ -227,11 +231,23 @@ export default function App() {
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['yearly'] });
       setEditId(null);
-      setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: selectedAccountId || '', date: new Date().toLocaleDateString('sv-SE') });
+      setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: selectedAccountId || '', date: new Date().toLocaleDateString('sv-SE'), paid: false });
       toast.success(editId ? 'Atualizado!' : 'Lançado!');
     },
     onError: (err: any) => {
       toast.error(err.message || 'Erro ao salvar transação');
+    }
+  });
+
+  const togglePaid = useMutation({
+    mutationFn: ({ id, paid }: { id: number; paid: boolean }) => api.setPaid(id, paid),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      toast.success(vars.paid ? 'Marcado como pago!' : 'Marcado como pendente');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Erro ao atualizar');
     }
   });
 
@@ -255,12 +271,12 @@ export default function App() {
     e.preventDefault();
     if (!form.description || !form.amount || !form.date) return;
     if (!form.account_id) return toast.error('Selecione uma conta para o lançamento.');
-    saveTx.mutate({ ...form, amount: Number(form.amount), account_id: Number(form.account_id), category_id: Number(form.category_id) || null });
+    saveTx.mutate({ ...form, paid: form.type === 'expense' ? form.paid : true, amount: Number(form.amount), account_id: Number(form.account_id), category_id: Number(form.category_id) || null });
   };
 
   const handleEdit = (t: any) => {
     setEditId(t.id);
-    setForm({ description: t.description, amount: t.amount.toString(), type: t.type, category_id: t.category_id || '', account_id: t.account_id || '', date: t.date });
+    setForm({ description: t.description, amount: t.amount.toString(), type: t.type, category_id: t.category_id || '', account_id: t.account_id || '', date: t.date, paid: !!t.paid });
     formRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -349,6 +365,18 @@ export default function App() {
     ? (periodBal / Math.abs(openingBal)) * 100 
     : null;
   const hasOpeningBalance = openingBal !== 0;
+
+  const bills = dash?.bills;
+  const billsTotal = (bills?.paid_total ?? 0) + (bills?.pending_total ?? 0);
+  const billsCount = (bills?.paid_count ?? 0) + (bills?.pending_count ?? 0);
+  const billsPerc = billsTotal > 0 ? Math.min(((bills?.paid_total ?? 0) / billsTotal) * 100, 100) : 0;
+
+  const billStatus = (t: any): { label: string; cls: string } => {
+    if (t.paid) return { label: 'Pago', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' };
+    if (t.date < today) return { label: 'Vencida', cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300' };
+    if (t.date === today) return { label: 'Vence hoje', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' };
+    return { label: 'A pagar', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' };
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors relative overflow-x-hidden">
@@ -561,7 +589,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
           
           <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 rounded-3xl p-5 md:p-6 text-white shadow-2xl shadow-emerald-500/30 overflow-hidden flex flex-col justify-between group h-full">
             <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
@@ -583,7 +611,7 @@ export default function App() {
                 <div className="h-12 mt-2 bg-white/20 rounded-lg animate-pulse w-3/4"></div>
               ) : (
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mt-2 tracking-tight break-words">
-                  R$ {dash?.closing_balance?.toFixed(2) ?? '0,00'}
+                  {brl(dash?.closing_balance ?? 0)}
                 </h2>
               )}
             </div>
@@ -592,13 +620,13 @@ export default function App() {
               <div className="relative mt-4 pt-4 border-t border-white/25 space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-emerald-50/80">Saldo Inicial ({new Date(dates.start + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })})</span>
-                  <span className="font-semibold text-emerald-100">R$ {dash?.opening_balance?.toFixed(2) ?? '0,00'}</span>
+                  <span className="font-semibold text-emerald-100">{brl(dash?.opening_balance ?? 0)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-emerald-50/80">Variação no Período</span>
                   <div className="flex items-center gap-1.5">
                     <span className={`font-bold ${periodBal >= 0 ? 'text-emerald-200' : 'text-rose-200'}`}>
-                      {periodBal >= 0 ? '▲ +' : '▼ '} R$ {Math.abs(periodBal).toFixed(2)}
+                      {periodBal >= 0 ? '▲ +' : '▼ -'}{brl(Math.abs(periodBal))}
                     </span>
                     {hasOpeningBalance && variationPerc !== null && (
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -620,7 +648,57 @@ export default function App() {
             )}
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60 md:col-span-2 flex flex-col">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-slate-800 dark:text-slate-200">Contas Pagas</h3>
+                <div className="bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400">
+                  <Receipt className="w-4 h-4" />
+                </div>
+              </div>
+              {isDashLoading ? (
+                <div className="h-10 mt-3 bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse w-3/4"></div>
+              ) : (
+                <>
+                  <p className="text-2xl sm:text-3xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400 tabular-nums break-words">
+                    {brl(bills?.paid_total ?? 0)}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">
+                    {bills?.paid_count ?? 0} de {billsCount} {billsCount === 1 ? 'conta paga' : 'contas pagas'} no período
+                  </p>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden mt-4">
+                    <div className="h-2.5 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-700" style={{ width: `${billsPerc}%` }}></div>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1.5 font-semibold text-right">{billsPerc.toFixed(0)}% pago</p>
+                </>
+              )}
+            </div>
+
+            {!isDashLoading && (
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> A pagar ({bills?.pending_count ?? 0})</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-200 tabular-nums">{brl(bills?.pending_total ?? 0)}</span>
+                </div>
+                {(bills?.overdue_count ?? 0) > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-rose-500 font-semibold">Vencidas ({bills.overdue_count})</span>
+                    <span className="font-bold text-rose-500 tabular-nums">{brl(bills.overdue_total)}</span>
+                  </div>
+                )}
+                {(bills?.pending_count ?? 0) > 0 && (
+                  <button
+                    onClick={() => { setPaidFilter('pending'); listRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
+                    className="w-full mt-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 py-2 rounded-xl transition"
+                  >
+                    Ver pendentes
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800/60 md:col-span-2 xl:col-span-1 flex flex-col">
             <div className="flex justify-between items-start mb-2 shrink-0">
               <h3 className="font-bold text-slate-800 dark:text-slate-200">Despesas por Categoria</h3>
               <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Período</span>
@@ -635,7 +713,7 @@ export default function App() {
                     <Pie data={dash.byCategory} dataKey="total" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={4} cornerRadius={8}>
                       {dash.byCategory.map((c: any) => <Cell key={c.name} fill={c.color} />)}
                     </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} formatter={(v: any) => `R$ ${Number(v).toFixed(2)}`} />
+                    <Tooltip contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} formatter={(v: any) => brl(Number(v))} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
@@ -660,7 +738,7 @@ export default function App() {
               <BarChart data={dash?.monthly ?? []}>
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} />
-                <Tooltip cursor={{ fill: darkMode ? '#1e293b' : '#f1f5f9' }} contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px' }} formatter={(v: any) => `R$ ${Number(v).toFixed(2)}`} />
+                <Tooltip cursor={{ fill: darkMode ? '#1e293b' : '#f1f5f9' }} contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px' }} formatter={(v: any) => brl(Number(v))} />
                 <Bar dataKey="income" fill="#10b981" name="Receita" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="expense" fill="#ef4444" name="Despesa" radius={[6, 6, 0, 0]} />
               </BarChart>
@@ -708,7 +786,7 @@ export default function App() {
                 
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12, fontWeight: 500 }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} />
-                <Tooltip cursor={{ fill: darkMode ? '#1e293b' : '#f1f5f9' }} contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', color: darkMode ? '#fff' : '#000' }} formatter={(value: any) => typeof value === 'number' ? `R$ ${value.toFixed(2)}` : value} />
+                <Tooltip cursor={{ fill: darkMode ? '#1e293b' : '#f1f5f9' }} contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', color: darkMode ? '#fff' : '#000' }} formatter={(value: any) => typeof value === 'number' ? brl(value) : value} />
                 <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
                 <Bar dataKey="income" fill="url(#income3D)" name="Receita" radius={[6, 6, 0, 0]} filter="url(#barShadow)" barSize={20} />
                 <Bar dataKey="expense" fill="url(#expense3D)" name="Despesa" radius={[6, 6, 0, 0]} filter="url(#barShadow)" barSize={20} />
@@ -730,7 +808,7 @@ export default function App() {
                   <div key={b.category_id}>
                     <div className="flex justify-between text-sm mb-2">
                       <span className="font-semibold text-slate-700 dark:text-slate-300">{b.name}</span>
-                      <span className="text-slate-500 font-medium">R$ {b.spent.toFixed(2)} / R$ {b.budget_amount.toFixed(2)}</span>
+                      <span className="text-slate-500 font-medium">{brl(b.spent)} / {brl(b.budget_amount)}</span>
                     </div>
                     <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
                       <div className={`h-2.5 rounded-full transition-all duration-700 ${perc >= 100 ? 'bg-gradient-to-r from-rose-500 to-red-600' : perc >= 80 ? 'bg-gradient-to-r from-orange-400 to-orange-500' : 'bg-gradient-to-r from-emerald-400 to-emerald-600'}`} style={{ width: `${perc}%` }}></div>
@@ -789,25 +867,44 @@ export default function App() {
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Data</label>
                   <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/50 text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all" required />
                 </div>
+                {form.type === 'expense' && (
+                  <button type="button" onClick={() => setForm({...form, paid: !form.paid})} className="w-full flex items-center justify-between gap-3 border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/50 text-sm font-medium transition-all hover:border-emerald-400" role="switch" aria-checked={form.paid}>
+                    <span className="text-slate-700 dark:text-slate-200">Conta já paga</span>
+                    <span className={`w-10 h-6 rounded-full p-0.5 transition-colors ${form.paid ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                      <span className={`block w-5 h-5 rounded-full bg-white shadow transition-transform ${form.paid ? 'translate-x-4' : ''}`}></span>
+                    </span>
+                  </button>
+                )}
                 <button type="submit" className="w-full bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/30 flex justify-center items-center gap-2 transition-all active:scale-95">
                   {editId ? <Check className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
                   {editId ? 'Salvar' : 'Lançar'}
                 </button>
                 {editId && (
-                  <button type="button" onClick={() => { setEditId(null); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: selectedAccountId || '', date: new Date().toLocaleDateString('sv-SE') }); }} className="w-full text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 mt-1">Cancelar Edição</button>
+                  <button type="button" onClick={() => { setEditId(null); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: selectedAccountId || '', date: new Date().toLocaleDateString('sv-SE'), paid: false }); }} className="w-full text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 mt-1">Cancelar Edição</button>
                 )}
               </form>
             </div>
           </div>
 
-          <div className="lg:col-span-2 xl:col-span-3">
+          <div className="lg:col-span-2 xl:col-span-3" ref={listRef}>
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-800/60 overflow-hidden h-full">
-              <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800">
+              <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800 space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="font-bold text-slate-800 dark:text-slate-200">
                     Histórico {selectedAccountId && `— ${selectedAccountName}`}
                   </h3>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{txns.length} lançamentos</span>
+                </div>
+                <div className="inline-flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1">
+                  {([['all', 'Todos'], ['paid', 'Pagas'], ['pending', 'Pendentes']] as const).map(([val, label]) => (
+                    <button
+                      key={val}
+                      onClick={() => setPaidFilter(val)}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${paidFilter === val ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
               
@@ -824,7 +921,12 @@ export default function App() {
                           {t.type === 'income' ? <ArrowDownLeft className="w-4 h-4 sm:w-5 sm:h-5" /> : <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />}
                         </div>
                         <div>
-                          <p className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100">{t.description}</p>
+                          <p className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100 flex items-center flex-wrap gap-x-2 gap-y-1">
+                            {t.description}
+                            {t.type === 'expense' && (
+                              <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${billStatus(t).cls}`}>{billStatus(t).label}</span>
+                            )}
+                          </p>
                           <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium">
                             {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')} 
                             {t.category_name && ` • ${t.category_name}`}
@@ -833,10 +935,21 @@ export default function App() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className={`font-bold text-sm sm:text-base whitespace-nowrap ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                          {t.type === 'income' ? '+' : '-'} R$ {t.amount.toFixed(2)}
+                        <span className={`font-bold text-sm sm:text-base whitespace-nowrap tabular-nums ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                          {t.type === 'income' ? '+' : '-'} {brl(t.amount)}
                         </span>
-                        <div className="hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 rounded-xl p-1 transition-all">
+                        {t.type === 'expense' && (
+                          <button
+                            onClick={() => togglePaid.mutate({ id: t.id, paid: !t.paid })}
+                            disabled={togglePaid.isPending}
+                            title={t.paid ? 'Marcar como pendente' : 'Marcar como pago'}
+                            aria-label={t.paid ? 'Marcar como pendente' : 'Marcar como pago'}
+                            className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 transition-all active:scale-90 disabled:opacity-50 ${t.paid ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-600 text-transparent hover:border-emerald-400 hover:text-emerald-400'}`}
+                          >
+                            <Check className="w-4 h-4" strokeWidth={3} />
+                          </button>
+                        )}
+                        <div className="flex sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 items-center gap-1 bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 rounded-xl p-1 transition-all">
                           <button onClick={() => handleEdit(t)} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
                           <button onClick={() => setConfirmDeleteTx(t)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
                         </div>
@@ -903,7 +1016,7 @@ export default function App() {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-500 dark:text-slate-400">Valor</span>
                 <span className={`font-bold ${confirmDeleteTx.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                  {confirmDeleteTx.type === 'income' ? '+' : '-'} R$ {confirmDeleteTx.amount.toFixed(2)}
+                  {confirmDeleteTx.type === 'income' ? '+' : '-'} {brl(confirmDeleteTx.amount)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">

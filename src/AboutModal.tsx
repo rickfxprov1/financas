@@ -1,7 +1,17 @@
-import { X, BarChart3, Sparkles, Shield, Zap, Palette, Bug, Filter, RefreshCw, Database, Lock, ListFilter, TrendingUp, Calendar, Edit, Trash2 } from 'lucide-react';
+import { X, BarChart3, Sparkles, Shield, Zap, Palette, Bug, Filter, RefreshCw, Database, Lock, ListFilter, TrendingUp, Calendar, Edit, Trash2, Receipt } from 'lucide-react';
 
 export function AboutModal({ onClose }: { onClose: () => void }) {
   const newFeatures = [
+    { 
+      Icon: Receipt, 
+      title: 'Contas Pagas', 
+      desc: 'Marque cada despesa como paga com um toque. O novo card mostra quanto já foi pago, quanto falta, as contas vencidas e o progresso do período.' 
+    },
+    { 
+      Icon: Filter, 
+      title: 'Filtro Pagas / Pendentes', 
+      desc: 'No histórico, filtre por todas, pagas ou pendentes. Cada despesa mostra se está paga, a pagar, vence hoje ou vencida.' 
+    },
     { 
       Icon: Trash2, 
       title: 'Modal Premium de Exclusão', 
@@ -89,7 +99,7 @@ export function AboutModal({ onClose }: { onClose: () => void }) {
           <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Finanças Pro</h2>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-sm text-slate-500">Versão</span>
-            <span className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full">2.9.0</span>
+            <span className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full">3.0.0</span>
           </div>
         </div>
 
@@ -104,7 +114,7 @@ export function AboutModal({ onClose }: { onClose: () => void }) {
           {/* NOVIDADES v2.9.0 */}
           <h3 className="text-xs font-bold uppercase tracking-widest text-emerald-500 mb-3 flex items-center gap-2 sticky top-0 bg-white dark:bg-slate-800 py-1">
             <Sparkles className="w-3.5 h-3.5" />
-            Novidades da v2.9.0
+            Novidades da v3.0.0
           </h3>
           
           <ul className="space-y-2 mb-6">

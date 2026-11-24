@@ -5,6 +5,8 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
   const end = url.searchParams.get('end') || '2100-01-01';
   const accountIdParam = url.searchParams.get('account_id');
   const accountId = accountIdParam ? Number(accountIdParam) : null;
+  const paidParam = url.searchParams.get('paid');
+  const paidFilter = paidParam === '1' || paidParam === '0' ? ` AND t.type = 'expense' AND t.paid = ${paidParam}` : '';
   const limit = parseInt(url.searchParams.get('limit') || '30');
   const offset = parseInt(url.searchParams.get('offset') || '0');
 
@@ -22,7 +24,7 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
     FROM transactions t
     LEFT JOIN categories c ON c.id = t.category_id
     LEFT JOIN accounts a ON a.id = t.account_id
-    WHERE t.user_id = ? AND t.date >= ? AND t.date <= ?${accFilter}
+    WHERE t.user_id = ? AND t.date >= ? AND t.date <= ?${accFilter}${paidFilter}
     ORDER BY t.date DESC, t.id DESC
     LIMIT ? OFFSET ?
   `).bind(userId, start, end, ...accParam, limit, offset).all();
@@ -58,9 +60,9 @@ export const onRequestPost: PagesFunction<{ DB: D1Database }> = async ({ request
   }
 
   const r = await env.DB.prepare(`
-    INSERT INTO transactions (user_id, account_id, category_id, description, amount, type, date)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).bind(userId, b.account_id, b.category_id || null, b.description.trim(), Number(b.amount), b.type, b.date).run();
+    INSERT INTO transactions (user_id, account_id, category_id, description, amount, type, date, paid)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(userId, b.account_id, b.category_id || null, b.description.trim(), Number(b.amount), b.type, b.date, b.paid ? 1 : 0).run();
   
   return Response.json({ id: r.meta.last_row_id }, { status: 201 });
 };

@@ -50,7 +50,7 @@ export const onRequestPost: PagesFunction<{ DB: D1Database }> = async ({ request
     const numAmount = parseFloat((amount || '').replace(',', '.'));
     if (isNaN(numAmount) || numAmount <= 0) { skipped++; continue; }
     
-    inserts.push(env.DB.prepare('INSERT INTO transactions (user_id, account_id, description, amount, type, date) VALUES (?, ?, ?, ?, ?, ?)')
+    inserts.push(env.DB.prepare('INSERT INTO transactions (user_id, account_id, description, amount, type, date, paid) VALUES (?, ?, ?, ?, ?, ?, 1)')
       .bind(userId, account_id, description, numAmount, type, date));
   }
 

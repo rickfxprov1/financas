@@ -32,8 +32,8 @@ export const onRequestPost: PagesFunction<{ DB: D1Database }> = async ({ request
   const txStmts = backup.transactions.map((tx: any) => {
     const newCatId = tx.category_id && catMap[tx.category_id] ? catMap[tx.category_id] : null;
     const newAccId = tx.account_id && accMap[tx.account_id] ? accMap[tx.account_id] : null;
-    return env.DB.prepare('INSERT INTO transactions (user_id, account_id, category_id, description, amount, type, date) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .bind(userId, newAccId, newCatId, tx.description, tx.amount, tx.type, tx.date);
+    return env.DB.prepare('INSERT INTO transactions (user_id, account_id, category_id, description, amount, type, date, paid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(userId, newAccId, newCatId, tx.description, tx.amount, tx.type, tx.date, tx.paid === undefined ? 1 : (tx.paid ? 1 : 0));
   });
   
   for (let i = 0; i < txStmts.length; i += 50) {

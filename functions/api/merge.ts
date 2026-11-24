@@ -91,8 +91,8 @@ export const onRequestPost: PagesFunction<{ DB: D1Database }> = async ({ request
     if (existingKeys.has(key)) { stats.transactions_skipped++; continue; }
 
     insertStmts.push(
-      env.DB.prepare('INSERT INTO transactions (user_id, account_id, category_id, description, amount, type, date, sync_batch_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-        .bind(userId, newAccId, newCatId, tx.description, tx.amount, tx.type, tx.date, syncBatchId)
+      env.DB.prepare('INSERT INTO transactions (user_id, account_id, category_id, description, amount, type, date, sync_batch_id, paid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .bind(userId, newAccId, newCatId, tx.description, tx.amount, tx.type, tx.date, syncBatchId, tx.paid === undefined ? 1 : (tx.paid ? 1 : 0))
     );
     existingKeys.add(key);
     stats.transactions_added++;
