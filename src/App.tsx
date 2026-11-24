@@ -97,6 +97,7 @@ export default function App() {
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toLocaleDateString('sv-SE'), paid: false });
   const [paidFilter, setPaidFilter] = useState<'all' | 'paid' | 'pending'>('all');
   const [selected, setSelected] = useState<number[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
   
   const [time, setTime] = useState(new Date());
 
@@ -284,6 +285,7 @@ export default function App() {
       qc.invalidateQueries({ queryKey: ['dashboard'] });
       qc.invalidateQueries({ queryKey: ['transactions'] });
       setSelected([]);
+      setSelectMode(false);
       const n = res?.updated ?? vars.ids.length;
       toast.success(vars.paid ? `${n} marcada(s) como paga(s)!` : `${n} marcada(s) como pendente(s)`);
     },
@@ -989,7 +991,15 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-                {expenseIds.length > 0 && (
+                {expenseIds.length > 0 && !selectMode && (
+                  <button
+                    onClick={() => setSelectMode(true)}
+                    className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 px-3 py-1.5 rounded-lg transition active:scale-95"
+                  >
+                    Marcar várias
+                  </button>
+                )}
+                {selectMode && (
                   <div className="flex flex-wrap items-center gap-2 pt-1">
                     <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer select-none mr-1">
                       <input
@@ -1017,11 +1027,11 @@ export default function App() {
                         >
                           Marcar como pendentes
                         </button>
-                        <button onClick={() => setSelected([])} className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 px-2 py-1.5">
-                          Limpar
-                        </button>
                       </>
                     )}
+                    <button onClick={() => { setSelected([]); setSelectMode(false); }} className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 px-2 py-1.5">
+                      Cancelar
+                    </button>
                   </div>
                 )}
               </div>
@@ -1035,7 +1045,7 @@ export default function App() {
                   {txns.map((t: any) => (
                     <li key={t.id} className={`p-4 sm:px-6 hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors flex items-center justify-between group ${selected.includes(t.id) ? 'bg-emerald-50/70 dark:bg-emerald-900/10' : ''}`}>
                       <div className="flex items-center gap-3 sm:gap-4">
-                        {t.type === 'expense' ? (
+                        {selectMode && (t.type === 'expense' ? (
                           <input
                             type="checkbox"
                             className="w-4 h-4 accent-emerald-500 cursor-pointer shrink-0"
@@ -1045,7 +1055,7 @@ export default function App() {
                           />
                         ) : (
                           <span className="w-4 shrink-0"></span>
-                        )}
+                        ))}
                         <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm" style={{ backgroundColor: t.category_color ? `${t.category_color}20` : (darkMode ? '#1e293b' : '#f1f5f9'), color: t.category_color || (darkMode ? '#cbd5e1' : '#64748b') }}>
                           {t.type === 'income' ? <ArrowDownLeft className="w-4 h-4 sm:w-5 sm:h-5" /> : <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />}
                         </div>
