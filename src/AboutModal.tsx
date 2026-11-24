@@ -3,6 +3,11 @@ import { X, BarChart3, Sparkles, Shield, Zap, Palette, Bug, Filter, RefreshCw, D
 export function AboutModal({ onClose }: { onClose: () => void }) {
   const newFeatures = [
     { 
+      Icon: BarChart3, 
+      title: 'Relatórios', 
+      desc: 'Nova opção no menu com o resumo do período: receitas, despesas, resultado, contas pagas e pendentes, categorias, maiores despesas e mês a mês. Exporta em CSV.' 
+    },
+    { 
       Icon: Receipt, 
       title: 'Contas Pagas', 
       desc: 'Marque cada despesa como paga com um toque. O novo card mostra quanto já foi pago, quanto falta, as contas vencidas e o progresso do período.' 

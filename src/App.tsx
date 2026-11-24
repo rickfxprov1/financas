@@ -23,6 +23,7 @@ import { ProfileModal } from './ProfileModal';
 import { RestoreModal } from './RestoreModal';
 import { ImportResultModal } from './ImportResultModal';
 import { MergeModal } from './MergeModal';
+import { ReportsModal } from './ReportsModal';
 
 const brl = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -53,6 +54,7 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showAccounts, setShowAccounts] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showReports, setShowReports] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   
   const [restoreData, setRestoreData] = useState<any>(null);
@@ -138,7 +140,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false); setShowAccounts(false); setShowProfile(false);
+    setShowMenu(false); setShowCats(false); setShowPass(false); setShowBudget(false); setShowImport(false); setShowAbout(false); setShowHelp(false); setShowAccounts(false); setShowProfile(false); setShowReports(false);
   }, [user]);
 
   const getGreeting = () => {
@@ -400,6 +402,9 @@ export default function App() {
     reader.readAsText(file);
   };
 
+  const fmtBR = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR');
+  const periodLabel = period === 'all' ? 'Todo o período' : `${fmtBR(dates.start)} a ${fmtBR(dates.end)}`;
+
   const selectedAccountName = accounts?.find((a: any) => String(a.id) === selectedAccountId)?.name;
 
   const openingBal = dash?.opening_balance ?? 0;
@@ -450,6 +455,7 @@ export default function App() {
                     <button onClick={() => { setShowAccounts(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><Wallet className="w-4 h-4 text-slate-400" /> Contas / Carteiras</button>
                     <button onClick={() => { setShowCats(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><Tags className="w-4 h-4 text-slate-400" /> Categorias</button>
                     <button onClick={() => { setShowBudget(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><Target className="w-4 h-4 text-slate-400" /> Orçamentos</button>
+                    <button onClick={() => { setShowReports(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><BarChart3 className="w-4 h-4 text-slate-400" /> Relatórios</button>
                     <button onClick={() => { setShowImport(true); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><FileUp className="w-4 h-4 text-slate-400" /> Importar CSV</button>
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
                     <button onClick={() => { handleBackup(); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors"><DownloadCloud className="w-4 h-4 text-slate-400" /> Fazer Backup</button>
@@ -581,6 +587,7 @@ export default function App() {
         {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
         {showAccounts && <ManageAccounts onClose={() => setShowAccounts(false)} />}
         {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+        {showReports && <ReportsModal onClose={() => setShowReports(false)} filterQuery={filterQuery} periodLabel={periodLabel} accountName={selectedAccountName} />}
 
         {restoreData && (
           <RestoreModal
