@@ -704,10 +704,11 @@ export default function App() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Período</span>
             </div>
             
-            <div className="flex-1 flex items-center justify-center min-h-[180px]">
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[180px]">
               {isDashLoading ? (
                 <div className="w-32 h-32 rounded-full border-4 border-slate-200 dark:border-slate-700 border-t-emerald-500 animate-spin"></div>
               ) : dash?.byCategory && dash.byCategory.length > 0 ? (
+                <>
                 <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
                     <Pie data={dash.byCategory} dataKey="total" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={4} cornerRadius={8}>
@@ -716,6 +717,18 @@ export default function App() {
                     <Tooltip contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} formatter={(v: any) => brl(Number(v))} />
                   </PieChart>
                 </ResponsiveContainer>
+                <ul className="w-full mt-3 space-y-1.5">
+                  {dash.byCategory.slice(0, 5).map((c: any) => (
+                    <li key={c.name} className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-2 text-slate-600 dark:text-slate-300 font-medium min-w-0">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }}></span>
+                        <span className="truncate">{c.name}</span>
+                      </span>
+                      <span className="font-bold text-slate-700 dark:text-slate-200 tabular-nums ml-2 whitespace-nowrap">{brl(c.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center text-slate-400 text-sm gap-2">
                   <PieChartIcon className="w-8 h-8 opacity-40" />
@@ -735,12 +748,13 @@ export default function App() {
             <div className="h-[250px] bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse w-full"></div>
           ) : (
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={dash?.monthly ?? []}>
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} />
+              <BarChart data={dash?.monthly ?? []} barGap={6}>
+                <XAxis dataKey="month" tickFormatter={(m: string) => { const [y, mo] = String(m).split('-'); return mo ? `${monthNames[Number(mo) - 1]}/${y.slice(2)}` : m; }} axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#94a3b8' : '#64748b', fontSize: 12 }} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : String(v)} />
                 <Tooltip cursor={{ fill: darkMode ? '#1e293b' : '#f1f5f9' }} contentStyle={{ backgroundColor: darkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '12px' }} formatter={(v: any) => brl(Number(v))} />
-                <Bar dataKey="income" fill="#10b981" name="Receita" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="expense" fill="#ef4444" name="Despesa" radius={[6, 6, 0, 0]} />
+                <Legend wrapperStyle={{ paddingTop: '8px' }} iconType="circle" />
+                <Bar dataKey="income" fill="#10b981" name="Receita" radius={[6, 6, 0, 0]} maxBarSize={56} />
+                <Bar dataKey="expense" fill="#ef4444" name="Despesa" radius={[6, 6, 0, 0]} maxBarSize={56} />
               </BarChart>
             </ResponsiveContainer>
           )}
